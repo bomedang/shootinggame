@@ -199,6 +199,19 @@ class Player{
     this.hpRegen=0;this.orbCount=0;this.orbAngle=0;this.magnet=80;
     this.lowHpBonus=false;this.shieldRecharge=false;this.aoeOnKill=false;
     this.homing=false;this.vampire=false;this.backstab=false;this.ricochet=false;
+    // new passives
+    this.rearShot=false;this.sideShot=false;this.spiralShot=false;this.spiralAngle=0;
+    this.dashDmg=false;this.dashAttractXP=false;
+    this.killHeal=false;this.killSpeedBoost=false;this.killSpeedT=0;
+    this.overcharge=false;this.overchargeT=0;this.overchargeMax=0;
+    this.frozenBullets=false;this.burnBullets=false;
+    this.decoyCount=0;this.decoyCd=0;this.decoyMax=300;
+    this.extraDashCharges=0;this.dashCharges=0;
+    this.shieldBash=false;
+    this.critChance=0;this.critMult=2;
+    this.xpBonus=1;
+    this.comboFireBonus=false;
+    this.mirrorShot=false;
     // active abilities
     this.novaCd=0;this.novaMax=300;
     this.slowCd=0;this.slowMax=420;
@@ -221,6 +234,12 @@ class Player{
       this.dashCd=this.dashMax;this.iframes=22;
       particles.ring(this.x,this.y,16,{color:'#00f5ff',size:3,speed:5,decay:0.08});
       for(let i=0;i<8;i++)particles.spawn(this.x,this.y,{color:'#7b2fff',size:4,vx:-mx*rnd(2,5),vy:-my*rnd(2,5),decay:0.06});
+      // dash damage
+      if(this.dashDmg){for(const e of game.enemies){if(e.alive&&dist(e,this)<60)e.takeDamage(this.bulletDmg*3,particles,this);}game.shake(3);}
+      // dash attract xp
+      if(this.dashAttractXP){for(const o of game.xpOrbs){const dd=dist(o,this);if(dd<150){o.vx+=(this.x-o.x)/dd*6;o.vy+=(this.y-o.y)/dd*6;}}}
+      // overcharge
+      if(this.overcharge){this.overchargeT=this.overchargeMax;particles.ring(this.x,this.y,10,{color:'#ffdd44',size:3,speed:4,decay:0.07});}
     }
     if(this.dashing){
       this.dashTime--;this.vx=this.dashDx*this.speed*6;this.vy=this.dashDy*this.speed*6;
@@ -246,19 +265,49 @@ class Player{
 
     if(this.homing)for(const b of bullets.bullets){if(b.enemy)continue;const hn=game.nearestEnemy(b.x,b.y);if(hn){const ba=a2(b,hn);b.dx+=Math.cos(ba)*0.05;b.dy+=Math.sin(ba)*0.05;const m=Math.hypot(b.dx,b.dy)||1;b.dx/=m;b.dy/=m;}}
 
-    this.orbAngle+=0.045;
+    this.orbAngle+=0.045;this.spiralAngle+=0.12;
     if(this.hpRegen>0)this.hp=Math.min(this.maxHp,this.hp+this.hpRegen*0.004);
     if(this.shieldRecharge&&this.maxShield>0&&this.iframes===0)this.shield=Math.min(this.maxShield,this.shield+0.025);
+    if(this.killSpeedT>0)this.killSpeedT--;
+    if(this.overchargeT>0)this.overchargeT--;
+    if(this.decoyCd>0)this.decoyCd--;
+    // decoy auto-fire at enemies
+    if(this.decoyCount>0&&this.decoyCd===0){
+      this.decoyCd=this.decoyMax;
+      for(let i=0;i<this.decoyCount;i++){
+        const da=this.orbAngle+i*(Math.PI*2/this.decoyCount);
+        const dx2=this.x+Math.cos(da)*50,dy2=this.y+Math.sin(da)*50;
+        const dn=game.nearestEnemy(dx2,dy2);
+        if(dn){const ba=a2({x:dx2,y:dy2},dn);bullets.fire(dx2,dy2,Math.cos(ba),Math.sin(ba),{speed:9,dmg:this.bulletDmg*0.7,size:3,color:'#ffaa00',pierce:0,life:70});particles.spawn(dx2,dy2,{color:'#ffaa00',size:3,vx:Math.cos(ba)*2,vy:Math.sin(ba)*2,decay:0.14});}
+      }
+    }
   }
   fireAt(target,bullets,particles){
     const base=a2(this,target);const spread=0.18;
-    const dmg=this.bulletDmg*(this.lowHpBonus&&this.hp<this.maxHp*0.35?1.8:1);
+    let dmg=this.bulletDmg*(this.lowHpBonus&&this.hp<this.maxHp*0.35?1.8:1);
+    if(this.killSpeedT>0)dmg*=1.3; // speed kill bonus
+    if(this.overchargeT>0)dmg*=1.5;
+    if(this.comboFireBonus&&game.combo>=10)dmg*=1+(game.combo*0.01);
+    // crit
+    let isCrit=false;
+    if(this.critChance>0&&Math.random()<this.critChance){dmg*=this.critMult;isCrit=true;}
+    const bColor=this.frozenBullets?'#88ddff':this.burnBullets?'#ff8800':isCrit?'#ffff00':'#00f5ff';
+    const bSize=this.bulletSize*(isCrit?1.4:1);
     for(let i=0;i<this.multiShot;i++){
       const off=(i-(this.multiShot-1)/2)*spread,ang=base+off;
       const tip={x:this.x+Math.cos(ang)*this.size*1.6,y:this.y+Math.sin(ang)*this.size*1.6};
-      bullets.fire(tip.x,tip.y,Math.cos(ang),Math.sin(ang),{speed:10*this.bulletSpeed,dmg,size:this.bulletSize,color:'#00f5ff',pierce:this.bulletPierce,life:85,homing:this.homing});
-      particles.spawn(tip.x,tip.y,{color:'#00f5ff',size:3,vx:Math.cos(ang)*2,vy:Math.sin(ang)*2,decay:0.14});
+      const b=bullets.fire(tip.x,tip.y,Math.cos(ang),Math.sin(ang),{speed:10*this.bulletSpeed,dmg,size:bSize,color:bColor,pierce:this.bulletPierce,life:85,homing:this.homing});
+      b.frozen=this.frozenBullets;b.burning=this.burnBullets;
+      particles.spawn(tip.x,tip.y,{color:bColor,size:3,vx:Math.cos(ang)*2,vy:Math.sin(ang)*2,decay:0.14});
     }
+    // rear shot
+    if(this.rearShot){const ra=base+Math.PI;bullets.fire(this.x-Math.cos(ra)*this.size,this.y-Math.sin(ra)*this.size,Math.cos(ra),Math.sin(ra),{speed:10*this.bulletSpeed,dmg:dmg*0.8,size:bSize*0.8,color:'#ff88ff',pierce:this.bulletPierce,life:85});}
+    // side shots
+    if(this.sideShot){for(const sa of[base+Math.PI/2,base-Math.PI/2]){bullets.fire(this.x,this.y,Math.cos(sa),Math.sin(sa),{speed:10*this.bulletSpeed,dmg:dmg*0.6,size:bSize*0.7,color:'#88ffaa',pierce:this.bulletPierce,life:70});}}
+    // spiral shot (rotating extra bullet)
+    if(this.spiralShot){const sa=this.spiralAngle;bullets.fire(this.x,this.y,Math.cos(sa),Math.sin(sa),{speed:8*this.bulletSpeed,dmg:dmg*0.5,size:bSize*0.7,color:'#ffdd44',pierce:0,life:60});}
+    // mirror shot (horizontal reflection)
+    if(this.mirrorShot){const ma=Math.atan2(-Math.sin(base),Math.cos(base));bullets.fire(this.x,this.y,Math.cos(ma),Math.sin(ma),{speed:10*this.bulletSpeed,dmg:dmg*0.7,size:bSize*0.8,color:'#dd88ff',pierce:this.bulletPierce,life:85});}
     if(this.ricochet&&Math.random()<0.25){
       const all=game.enemies.filter(e=>e.alive&&e.spawnT<=0);
       if(all.length>=2){const a=all[rndInt(0,all.length-1)];const b2=all.filter(e=>e!==a)[0];if(a&&b2){game.lightning.add(a.x,a.y,b2.x,b2.y,'#00f5ff',10);a.takeDamage(dmg*0.5,game.particles,this);}}
@@ -290,7 +339,9 @@ class Player{
   takeDamage(dmg,particles){
     if(this.iframes>0)return;
     if(this.shield>0){const abs=Math.min(this.shield,dmg);this.shield-=abs;dmg-=abs;particles.burst(this.x,this.y,8,{color:'#00a8ff',size:3,speed:3,decay:0.08});}
-    if(dmg>0){this.hp=Math.max(0,this.hp-dmg);this.flashT=8;this.iframes=25;game.shake(dmg>10?5:3);particles.burst(this.x,this.y,12,{color:'#ff2d6b',size:4,speed:4,decay:0.07});}
+    if(dmg>0){this.hp=Math.max(0,this.hp-dmg);this.flashT=8;this.iframes=25;game.shake(dmg>10?5:3);particles.burst(this.x,this.y,12,{color:'#ff2d6b',size:4,speed:4,decay:0.07});
+      if(this.shieldBash){particles.ring(this.x,this.y,14,{color:'#00f5ff',size:3,speed:7,decay:0.06});for(const e of game.enemies){if(e.alive&&dist(e,this)<90)e.takeDamage(this.bulletDmg*2,particles,this);}}
+    }
   }
   gainXP(v){this.xp+=v;while(this.xp>=this.xpNext){this.xp-=this.xpNext;this.xpNext=Math.floor(this.xpNext*1.35);this.level++;game.triggerUpgrade();}}
   vampHeal(v){if(this.vampire)this.hp=Math.min(this.maxHp,this.hp+v);}
@@ -305,7 +356,15 @@ class Player{
     c.shadowBlur=0;c.restore();
     if(this.dashCd>0){c.strokeStyle='rgba(0,245,255,0.3)';c.lineWidth=2;c.setLineDash([4,4]);c.beginPath();c.arc(this.x,this.y,this.size+7,-Math.PI/2,-Math.PI/2+(1-this.dashCd/this.dashMax)*Math.PI*2);c.stroke();c.setLineDash([]);}
     for(let i=0;i<this.orbCount;i++){const oa=this.orbAngle+i*(Math.PI*2/this.orbCount);const ox=this.x+Math.cos(oa)*30,oy=this.y+Math.sin(oa)*30;c.shadowBlur=12;c.shadowColor='#7b2fff';c.fillStyle='#7b2fff';c.beginPath();c.arc(ox,oy,5,0,Math.PI*2);c.fill();c.shadowBlur=0;}
+    // drone turrets (different radius)
+    for(let i=0;i<this.decoyCount;i++){const da=this.orbAngle*0.6+i*(Math.PI*2/this.decoyCount);const dx2=this.x+Math.cos(da)*50,dy2=this.y+Math.sin(da)*50;c.shadowBlur=10;c.shadowColor='#ffaa00';c.fillStyle='#ffaa00';c.beginPath();c.arc(dx2,dy2,4,0,Math.PI*2);c.fill();c.fillStyle='rgba(255,170,0,0.3)';c.fillRect(dx2-6,dy2-6,12,12);c.shadowBlur=0;}
     if(game.slowTime>0){c.strokeStyle=`rgba(136,255,204,${0.35*Math.min(1,game.slowTime/30)})`;c.lineWidth=1.5;c.setLineDash([3,7]);c.beginPath();c.arc(this.x,this.y,200,0,Math.PI*2);c.stroke();c.setLineDash([]);}
+    // kill speed aura
+    if(this.killSpeedT>0){const ka=this.killSpeedT/120;c.strokeStyle=`rgba(255,140,0,${ka*0.5})`;c.lineWidth=2;c.beginPath();c.arc(this.x,this.y,this.size+10,0,Math.PI*2);c.stroke();}
+    // overcharge aura
+    if(this.overchargeT>0){const oa=this.overchargeT/this.overchargeMax;c.shadowBlur=16;c.shadowColor='#ffdd44';c.strokeStyle=`rgba(255,221,68,${oa*0.7})`;c.lineWidth=2.5;c.beginPath();c.arc(this.x,this.y,this.size+4,0,Math.PI*2);c.stroke();c.shadowBlur=0;}
+    // crit chance indicator (small dots)
+    if(this.critChance>0){for(let i=0;i<Math.round(this.critChance*6);i++){const ca=i/6*Math.PI*2-Math.PI/2;c.fillStyle='rgba(255,255,0,0.7)';c.beginPath();c.arc(this.x+Math.cos(ca)*(this.size+14),this.y+Math.sin(ca)*(this.size+14),2,0,Math.PI*2);c.fill();}}
   }
 }
 
@@ -389,6 +448,10 @@ class Enemy{
     this.hp-=dmg;this.flashT=6;this.hitStop=3;game.shake(this.type==='boss'?2:1.5);
     particles.burst(this.x,this.y,5,{color:this.color,size:3,speed:3,decay:0.08});
     if(player)player.vampHeal(dmg*0.04);
+    // frozen slows enemy
+    if(this._lastBulletFrozen){this.speed=Math.max(0.2,this.speed*0.6);particles.burst(this.x,this.y,3,{color:'#88ddff',size:2,speed:2,decay:0.12});}
+    // burn ticks
+    if(this._lastBulletBurning&&!this.burning){this.burning=true;this.burnT=120;this.burnDmg=dmg*0.08;}
     if(this.hp<=0){this.die(particles,player);return true;}
     return false;
   }
@@ -396,8 +459,10 @@ class Enemy{
     this.alive=false;
     particles.burst(this.x,this.y,this.type==='boss'?40:20,{color:this.color,size:rnd(3,6),speed:rnd(3,7),decay:rnd(0.03,0.06)});
     particles.ring(this.x,this.y,12,{color:'#fff',size:2,speed:5,decay:0.1});
-    game.spawnXP(this.x,this.y,this.xp);
+    game.spawnXP(this.x,this.y,Math.round(this.xp*(player?player.xpBonus:1)));
     game.addScore(this.score);game.kills++;if(player)player.kills++;
+    if(player&&player.killHeal)player.hp=Math.min(player.maxHp,player.hp+3);
+    if(player&&player.killSpeedBoost)player.killSpeedT=120;
     if(this.type==='splitter'){for(let i=0;i<2;i++){const e=new Enemy('swarm',this.x+rnd(-25,25),this.y+rnd(-25,25));e.xp=1;e.score=4;game.enemies.push(e);}}
     if(this.type==='boss'){game.bossActive=false;document.getElementById('bossBar').style.display='none';game.shake(15);for(let i=0;i<10;i++)game.spawnXP(this.x+rnd(-50,50),this.y+rnd(-50,50),10);}
     if(player&&player.aoeOnKill){particles.ring(this.x,this.y,18,{color:'#ffd700',size:3,speed:6,decay:0.06});for(const e of game.enemies){if(e!==this&&e.alive&&dist(e,this)<80)e.takeDamage(player.bulletDmg*2,particles,player);}}
@@ -458,17 +523,35 @@ const UPGRADES=[
   {r:false,icon:'🧲',name:'PULL FIELD',   desc:'XP pickup radius +60%',                       apply:p=>{p.magnet*=1.6;}},
   {r:false,icon:'☄️',name:'HYPERDRIVE',   desc:'Bullet velocity +30%',                        apply:p=>{p.bulletSpeed*=1.3;}},
   {r:false,icon:'🔵',name:'MASS DRIVER',  desc:'Bullet size +30%, damage +15%',               apply:p=>{p.bulletSize*=1.3;p.bulletDmg*=1.15;}},
-  {r:false,icon:'💠',name:'FLASH STEP',   desc:'Dash cooldown -35%',                           apply:p=>{p.dashMax=Math.max(20,Math.floor(p.dashMax*0.65));}},
-  // RARE
-  {r:true, icon:'🎯',name:'SEEKER ROUNDS',desc:'★ Bullets home toward nearest enemy',         apply:p=>{p.homing=true;}},
-  {r:true, icon:'💀',name:"DEATH'S EDGE", desc:'★ Below 35% HP: +80% bullet damage',          apply:p=>{p.lowHpBonus=true;}},
-  {r:true, icon:'💥',name:'CHAIN DEATH',  desc:'★ Enemy death damages nearby foes',           apply:p=>{p.aoeOnKill=true;}},
-  {r:true, icon:'🧛',name:'VAMPIRIC CORE',desc:'★ Drain 4% of damage dealt as HP',            apply:p=>{p.vampire=true;}},
-  {r:true, icon:'🗡️',name:'ASSASSIN',     desc:'★ Hitting from behind: +60% damage',          apply:p=>{p.backstab=true;}},
-  {r:true, icon:'🌩️',name:'ARC ROUNDS',   desc:'★ 25% chance to chain-zap on fire',           apply:p=>{p.ricochet=true;}},
-  {r:true, icon:'🔋',name:'NOVA CHARGE',  desc:'★ Nova Burst cooldown -40%',                  apply:p=>{p.novaMax=Math.floor(p.novaMax*0.6);}},
-  {r:true, icon:'🕰️',name:'CHRONO LENS',  desc:'★ Time Slow duration +70%, CD -30%',          apply:p=>{p.slowMax=Math.floor(p.slowMax*0.7);}},
-  {r:true, icon:'🔗',name:'CHAIN MASTERY',desc:'★ Chain Lightning hits 4 more targets',       apply:p=>{p.bulletPierce+=4;}},
+  {r:false,icon:'💠',name:'FLASH STEP',    desc:'Dash cooldown -35%',                           apply:p=>{p.dashMax=Math.max(20,Math.floor(p.dashMax*0.65));}},
+  {r:false,icon:'🎲',name:'LUCKY SHOT',    desc:'Gain 15% crit chance (crits deal 2x damage)',  apply:p=>{p.critChance=Math.min(0.8,p.critChance+0.15);}},
+  {r:false,icon:'📡',name:'XP HARVESTER',  desc:'Gain 25% more XP from all sources',           apply:p=>{p.xpBonus=(p.xpBonus||1)*1.25;}},
+  {r:false,icon:'🔙',name:'REAR CANNON',   desc:'Fire a bullet backward on every shot',        apply:p=>{p.rearShot=true;}},
+  {r:false,icon:'↔️', name:'SIDE CANNONS',  desc:'Fire two bullets sideways on every shot',     apply:p=>{p.sideShot=true;}},
+  {r:false,icon:'🌪️',name:'SPIRAL SHOT',   desc:'A rotating bonus bullet orbits out each shot',apply:p=>{p.spiralShot=true;}},
+  {r:false,icon:'💣',name:'DASH STRIKE',   desc:'Dashing through enemies deals burst damage',   apply:p=>{p.dashDmg=true;}},
+  {r:false,icon:'🧊',name:'CRYO ROUNDS',   desc:'Bullets slow enemy movement speed by 40%',    apply:p=>{p.frozenBullets=true;}},
+  {r:false,icon:'🔴',name:'BURN ROUNDS',   desc:'Bullets ignite enemies — 2s damage over time', apply:p=>{p.burnBullets=true;}},
+  {r:false,icon:'💚',name:'KILL MEND',     desc:'Each enemy kill restores 3 HP',               apply:p=>{p.killHeal=true;}},
+  {r:false,icon:'🏃',name:'KILL RUSH',     desc:'Each kill boosts your speed for 2 seconds',   apply:p=>{p.killSpeedBoost=true;}},
+  {r:false,icon:'🤖',name:'DRONE TURRET',  desc:'Deploy an auto-firing drone around you',      apply:p=>{p.decoyCount=Math.min(3,p.decoyCount+1);}},
+  {r:false,icon:'🔋',name:'NOVA CHARGE',   desc:'Nova Burst cooldown -40%',                    apply:p=>{p.novaMax=Math.floor(p.novaMax*0.6);}},
+  {r:false,icon:'🕰️',name:'CHRONO LENS',   desc:'Time Slow duration +70%, cooldown -30%',      apply:p=>{p.slowMax=Math.floor(p.slowMax*0.7);}},
+  // ── RARE ──
+  {r:true, icon:'🎯',name:'SEEKER ROUNDS', desc:'★ Bullets home toward nearest enemy',         apply:p=>{p.homing=true;}},
+  {r:true, icon:'💀',name:"DEATH'S EDGE",  desc:'★ Below 35% HP: +80% bullet damage',          apply:p=>{p.lowHpBonus=true;}},
+  {r:true, icon:'💥',name:'CHAIN DEATH',   desc:'★ Enemy death damages all nearby foes',       apply:p=>{p.aoeOnKill=true;}},
+  {r:true, icon:'🧛',name:'VAMPIRIC CORE', desc:'★ Drain 4% of all damage dealt as HP',        apply:p=>{p.vampire=true;}},
+  {r:true, icon:'🗡️',name:'ASSASSIN',      desc:'★ Hitting enemies from behind: +60% damage',  apply:p=>{p.backstab=true;}},
+  {r:true, icon:'🌩️',name:'ARC ROUNDS',    desc:'★ 25% chance to chain-zap on every shot',     apply:p=>{p.ricochet=true;}},
+  {r:true, icon:'🔗',name:'CHAIN MASTERY', desc:'★ Chain Lightning hits 4 more targets',       apply:p=>{p.bulletPierce+=4;}},
+  {r:true, icon:'🪞',name:'MIRROR SHOT',   desc:'★ Every bullet fires a reflected twin bullet', apply:p=>{p.mirrorShot=true;}},
+  {r:true, icon:'⚡',name:'OVERCHARGE',    desc:'★ After dashing: +50% damage for 3 seconds',  apply:p=>{p.overcharge=true;p.overchargeMax=180;}},
+  {r:true, icon:'💫',name:'DASH VACUUM',   desc:'★ Dashing pulls all nearby XP orbs to you',   apply:p=>{p.dashAttractXP=true;}},
+  {r:true, icon:'🎰',name:'COMBO SURGE',   desc:'★ At 10+ combo: bullets scale with kills',    apply:p=>{p.comboFireBonus=true;}},
+  {r:true, icon:'⚔️', name:'SHIELD BASH',  desc:'★ Taking damage fires a shockwave burst',     apply:p=>{p.shieldBash=true;}},
+  {r:true, icon:'🔑',name:'CRIT MASTERY',  desc:'★ Crit chance +25%, crit multiplier ×3',      apply:p=>{p.critChance=Math.min(0.9,p.critChance+0.25);p.critMult=3;}},
+  {r:true, icon:'👾',name:'SWARM DRONES',  desc:'★ Drones fire twice as often',                apply:p=>{p.decoyMax=Math.max(60,Math.floor(p.decoyMax*0.5));}},
 ];
 function getChoices(){const common=UPGRADES.filter(u=>!u.r).sort(()=>Math.random()-0.5).slice(0,2);const rare=UPGRADES.filter(u=>u.r).sort(()=>Math.random()-0.5).slice(0,1);return [...common,...rare].sort(()=>Math.random()-0.5);}
 
@@ -601,6 +684,8 @@ const game={
       const e=this.enemies[i];
       if(!e.alive){this.enemies.splice(i,1);continue;}
       e.update(p,this.bullets,this.particles,this.wave,this.lightning);
+      // burn tick
+      if(e.burning&&e.burnT>0){e.burnT--;if(e.burnT%12===0){e.hp-=e.burnDmg;this.particles.spawn(e.x,e.y,{color:'#ff8800',size:rnd(2,4),vx:rnd(-1,1),vy:rnd(-2,0),decay:0.08});if(e.hp<=0){e.alive=false;e.die(this.particles,p);}}}
       if(dist(e,p)<e.size+p.size&&e.spawnT<=0){p.takeDamage(e.dmg*0.1,this.particles);e.vx+=(e.x-p.x)/(dist(e,p)||1)*3;e.vy+=(e.y-p.y)/(dist(e,p)||1)*3;}
     }
 
@@ -611,7 +696,9 @@ const game={
       const b=this.bullets.bullets[bi];
       if(b.enemy){if(dist(b,p)<p.size+b.size){p.takeDamage(b.dmg,this.particles);this.freezeFrames=3;this.bullets.remove(bi);}continue;}
       let rm=false;
-      for(const e of this.enemies){if(!e.alive||e.spawnT>0)continue;if(dist(b,e)<e.size+b.size){if(e.takeDamage(b.dmg,this.particles,p))this.freezeFrames=2;b.hit++;if(b.hit>b.pierce)rm=true;break;}}
+      for(const e of this.enemies){if(!e.alive||e.spawnT>0)continue;if(dist(b,e)<e.size+b.size){
+        e._lastBulletFrozen=b.frozen;e._lastBulletBurning=b.burning;
+        if(e.takeDamage(b.dmg,this.particles,p))this.freezeFrames=2;b.hit++;if(b.hit>b.pierce)rm=true;break;}}
       if(rm)this.bullets.remove(bi);
     }
 
