@@ -30,9 +30,9 @@
   .ab-label{font-size:7px;letter-spacing:1.5px;color:#4a6080;margin-top:2px;}
   .ab-cd-bar{position:absolute;bottom:0;left:0;width:100%;height:3px;background:var(--c-player);transform-origin:left;}
   .ab-ov{position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.65);display:none;align-items:center;justify-content:center;font-family:'Orbitron',sans-serif;font-size:11px;color:#fff;}
-  #upgradePanel{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(5,8,16,0.97);border:1px solid rgba(123,47,255,0.4);width:560px;padding:32px;display:none;pointer-events:all;box-shadow:0 0 80px rgba(123,47,255,0.2);}
-  #upgradePanel h2{font-family:'Orbitron',sans-serif;color:var(--c-accent);font-size:14px;letter-spacing:6px;margin-bottom:24px;text-align:center;}
-  .upg-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+  #upgradePanel{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(5,8,16,0.97);border:1px solid rgba(123,47,255,0.4);width:730px;padding:28px 30px;display:none;pointer-events:all;box-shadow:0 0 80px rgba(123,47,255,0.2);}
+  #upgradePanel h2{font-family:'Orbitron',sans-serif;color:var(--c-accent);font-size:14px;letter-spacing:6px;margin-bottom:20px;text-align:center;}
+  .upg-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;}
   .upg-card{background:rgba(26,32,64,0.8);border:1px solid rgba(123,47,255,0.3);padding:16px 12px;cursor:pointer;transition:all 0.15s;text-align:center;}
   .upg-card:hover{background:rgba(123,47,255,0.2);border-color:rgba(123,47,255,0.8);transform:translateY(-2px);box-shadow:0 8px 24px rgba(123,47,255,0.3);}
   .upg-card.rare{border-color:rgba(255,215,0,0.5);}
@@ -553,7 +553,7 @@ const UPGRADES=[
   {r:true, icon:'🔑',name:'CRIT MASTERY',  desc:'★ Crit chance +25%, crit multiplier ×3',      apply:p=>{p.critChance=Math.min(0.9,p.critChance+0.25);p.critMult=3;}},
   {r:true, icon:'👾',name:'SWARM DRONES',  desc:'★ Drones fire twice as often',                apply:p=>{p.decoyMax=Math.max(60,Math.floor(p.decoyMax*0.5));}},
 ];
-function getChoices(){const common=UPGRADES.filter(u=>!u.r).sort(()=>Math.random()-0.5).slice(0,2);const rare=UPGRADES.filter(u=>u.r).sort(()=>Math.random()-0.5).slice(0,1);return [...common,...rare].sort(()=>Math.random()-0.5);}
+function getChoices(){const common=UPGRADES.filter(u=>!u.r).sort(()=>Math.random()-0.5).slice(0,3);const rare=UPGRADES.filter(u=>u.r).sort(()=>Math.random()-0.5).slice(0,1);return [...common,...rare].sort(()=>Math.random()-0.5);}
 
 // ── BACKGROUND ──
 class BG{
