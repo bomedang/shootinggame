@@ -33,6 +33,16 @@
   #upgradePanel{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(5,8,16,0.97);border:1px solid rgba(123,47,255,0.4);width:730px;padding:28px 30px;display:none;pointer-events:all;box-shadow:0 0 80px rgba(123,47,255,0.2);}
   #upgradePanel h2{font-family:'Orbitron',sans-serif;color:var(--c-accent);font-size:14px;letter-spacing:6px;margin-bottom:20px;text-align:center;}
   .upg-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;}
+  #adminPanel{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(4,6,22,0.98);border:1px solid rgba(0,245,255,0.25);width:760px;padding:24px;display:none;pointer-events:all;box-shadow:0 0 90px rgba(0,245,255,0.15);}
+  #adminPanel h2{font-family:'Orbitron',sans-serif;color:#00f5ff;font-size:14px;letter-spacing:6px;margin-bottom:14px;text-align:center;}
+  #adminPanel .admin-info{color:#6a7a9a;font-size:10px;text-align:center;margin-bottom:14px;}
+  #admin-actions{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;max-height:320px;overflow:auto;padding:4px;}
+  .admin-btn{padding:12px 10px;font-family:'Share Tech Mono',monospace;font-size:10px;color:#c8d8ff;background:rgba(10,14,34,0.95);border:1px solid rgba(0,245,255,0.15);cursor:pointer;transition:all 0.15s;text-align:center;white-space:normal;}
+  .admin-btn:hover{background:rgba(0,245,255,0.08);border-color:rgba(0,245,255,0.35);}
+  .admin-upg{font-size:9px;min-height:50px;}
+  .admin-subtitle{grid-column:1/-1;font-size:10px;color:#7b2fff;text-transform:uppercase;letter-spacing:2px;margin:8px 0 2px;}
+  .admin-footer{display:flex;justify-content:center;gap:12px;margin-top:16px;}
+  #admin-dup:disabled{opacity:0.4;cursor:not-allowed;}
   .upg-card{background:rgba(26,32,64,0.8);border:1px solid rgba(123,47,255,0.3);padding:16px 12px;cursor:pointer;transition:all 0.15s;text-align:center;}
   .upg-card:hover{background:rgba(123,47,255,0.2);border-color:rgba(123,47,255,0.8);transform:translateY(-2px);box-shadow:0 8px 24px rgba(123,47,255,0.3);}
   .upg-card.rare{border-color:rgba(255,215,0,0.5);}
@@ -93,6 +103,8 @@
 
     <div id="upgradePanel"><h2>— POWER SURGE —</h2><div class="upg-grid" id="upg-grid"></div></div>
 
+    <div id="adminPanel"><h2>— ADMIN PANEL —</h2><div class="admin-info">Press <strong>L + M</strong> to open. Choose an action below, then duplicate it freely.</div><div id="admin-actions"></div><div class="admin-footer"><button class="btn" id="admin-dup" disabled>DUPLICATE LAST</button><button class="btn" id="admin-close">CLOSE</button></div></div>
+
     <div id="bossBar"><div id="bossName">VOID HERALD</div>
       <div id="bossWrap"><div id="bossFill" style="width:100%"></div></div></div>
 
@@ -135,7 +147,10 @@ const easeOut=(t)=>1-Math.pow(1-t,3);
 const a2=(a,b)=>Math.atan2(b.y-a.y,b.x-a.x);
 
 const keys={},just={};
-document.addEventListener('keydown',e=>{if(!keys[e.code])just[e.code]=true;keys[e.key]=true;keys[e.code]=true;['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key)&&e.preventDefault();});
+document.addEventListener('keydown',e=>{if(!keys[e.code])just[e.code]=true;keys[e.key]=true;keys[e.code]=true;['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key)&&e.preventDefault();
+  if((e.code==='KeyL'||e.code==='KeyM')&&keys['KeyL']&&keys['KeyM']&&game.state!=='admin'){game.openAdmin();}
+  if(e.code==='Escape'&&game.state==='admin'){game.closeAdmin();}
+});
 document.addEventListener('keyup',e=>{keys[e.key]=false;keys[e.code]=false;});
 
 // ── PARTICLES ──
@@ -554,6 +569,14 @@ const UPGRADES=[
   {r:true, icon:'👾',name:'SWARM DRONES',  desc:'★ Drones fire twice as often',                apply:p=>{p.decoyMax=Math.max(60,Math.floor(p.decoyMax*0.5));}},
 ];
 function getChoices(){const common=UPGRADES.filter(u=>!u.r).sort(()=>Math.random()-0.5).slice(0,3);const rare=UPGRADES.filter(u=>u.r).sort(()=>Math.random()-0.5).slice(0,1);return [...common,...rare].sort(()=>Math.random()-0.5);}
+const ADMIN_ACTIONS=[
+  {label:'+10000 SCORE',type:'score',value:10000,desc:'Instantly add score.'},
+  {label:'+200 XP',type:'xp',value:200,desc:'Gain experience points.'},
+  {label:'HEAL FULL',type:'heal',value:9999,desc:'Restore hull to full.'},
+  {label:'MAX SHIELD',type:'shield',value:9999,desc:'Fill shield to maximum.'},
+  {label:'SPAWN ENEMY',type:'spawn',desc:'Spawn a random enemy.'}
+];
+let adminLastAction=null;
 
 // ── BACKGROUND ──
 class BG{
@@ -640,6 +663,15 @@ const game={
     });
     document.getElementById('upgradePanel').style.display='block';
   },
+  populateAdmin(){
+    const grid=document.getElementById('admin-actions');grid.innerHTML='';
+    ADMIN_ACTIONS.forEach(act=>{const btn=document.createElement('button');btn.className='admin-btn';btn.textContent=act.label;btn.title=act.desc;btn.addEventListener('click',()=>{this.applyAdmin(act);});grid.appendChild(btn);});
+    const heading=document.createElement('div');heading.className='admin-subtitle';heading.textContent='UPGRADES';grid.appendChild(heading);
+    UPGRADES.forEach(u=>{const btn=document.createElement('button');btn.className='admin-btn admin-upg';btn.innerHTML=`${u.icon} ${u.name}`;btn.title=u.desc;btn.addEventListener('click',()=>{this.applyAdmin({type:'upgrade',upgrade:u,label:u.name});});grid.appendChild(btn);});
+  },
+  openAdmin(){if(!this.player)this.init();adminLastAction=null;this.populateAdmin();document.getElementById('admin-dup').disabled=true;document.getElementById('adminPanel').style.display='block';this.prevState=this.state;this.state='admin';},
+  closeAdmin(){document.getElementById('adminPanel').style.display='none';this.state=this.prevState||'playing';},
+  applyAdmin(action){if(!action)return;const p=this.player;switch(action.type){case 'score':this.score+=action.value;break;case 'xp':if(p)p.gainXP(action.value);break;case 'heal':if(p)p.hp=Math.min(p.maxHp,p.hp+action.value);break;case 'shield':if(p){p.maxShield=Math.max(p.maxShield,action.value);p.shield=p.maxShield;}break;case 'spawn':this.spawnEnemy();break;case 'upgrade':if(p)action.upgrade.apply(p);break;case 'repeat':if(adminLastAction)this.applyAdmin(adminLastAction);return;}adminLastAction=action;document.getElementById('admin-dup').disabled=false;},
   updHUD(){
     const p=this.player;
     document.getElementById('hpBar').style.width=(p.hp/p.maxHp*100)+'%';
@@ -660,6 +692,7 @@ const game={
   update(){
     if(this.state==='dead'||this.state==='start'){Object.keys(just).forEach(k=>delete just[k]);return;}
     if(this.state==='upgrade'){Object.keys(just).forEach(k=>delete just[k]);return;}
+    if(this.state==='admin'){Object.keys(just).forEach(k=>delete just[k]);return;}
     if(this.freezeFrames>0){this.freezeFrames--;Object.keys(just).forEach(k=>delete just[k]);return;}
 
     const p=this.player,sf=this.slowTime>0?0.35:1;
@@ -734,6 +767,8 @@ const game={
 
 document.getElementById('startBtn').addEventListener('click',()=>{document.getElementById('startScreen').style.display='none';game.init();game.state='playing';});
 document.getElementById('restartBtn').addEventListener('click',()=>{document.getElementById('deathScreen').style.display='none';document.getElementById('bossBar').style.display='none';game.init();game.state='playing';});
+document.getElementById('admin-close').addEventListener('click',()=>{game.closeAdmin();});
+document.getElementById('admin-dup').addEventListener('click',()=>{game.applyAdmin({type:'repeat'});});
 
 let last=0;
 function loop(ts){requestAnimationFrame(loop);last=ts;game.update();game.draw();}
