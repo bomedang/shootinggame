@@ -79,12 +79,26 @@
   #mobileActions{display:flex;gap:8px;flex:1;}
   #mobileDash{flex:0.7;}
   #mobileQ,#mobileE,#mobileR{flex:1;}
-  @media (max-width:768px){
-    #mobileControls{display:flex;flex-wrap:wrap;height:auto;}
+  /* 세로 모드 (portrait) */
+  @media (max-width:768px) and (orientation:portrait){
+    #mobileControls{display:flex;flex-wrap:wrap;height:auto;width:100%;}
     #gameWrap{width:100%;flex:1;max-width:none;}
     canvas{width:100%;height:100%;}
     #ui{width:100%;height:100%;position:absolute;top:0;left:0;}
     body{flex-direction:column;justify-content:flex-start;}
+  }
+  /* 가로 모드 (landscape) */
+  @media (max-width:1024px) and (orientation:landscape){
+    body{flex-direction:row;justify-content:center;align-items:center;gap:8px;}
+    #mobileControls{display:flex;flex-direction:column;justify-content:center;width:auto;height:100%;gap:8px;padding:8px;border-top:none;border-right:1px solid rgba(0,245,255,0.2);}
+    #mobileDir{width:auto;gap:2px;}
+    #mobileUp,#mobileLeft,#mobileDown,#mobileRight{width:40px;height:40px;padding:0;font-size:16px;}
+    #mobileActions{flex-direction:column;gap:4px;width:auto;}
+    #mobileDash{width:50px;height:auto;flex:none;}
+    #mobileQ,#mobileE,#mobileR{width:50px;height:auto;flex:none;font-size:10px;padding:6px 4px;}
+    #gameWrap{width:auto;height:auto;flex:1;max-width:60vw;max-height:100vh;}
+    canvas{width:100%;height:100%;max-width:600px;max-height:90vh;}
+    #ui{width:100%;height:100%;position:absolute;top:0;left:0;}
   }
 </style>
 </head>
@@ -347,7 +361,7 @@ class Player{
     if(this.decoyCd>0)this.decoyCd--;
     // decoy auto-fire at enemies
     if(this.decoyCount>0&&this.decoyCd===0){
-      this.decoyCd=this.decoyMax;
+      this.decoyCd=this.decoyMax;ㄱ
       for(let i=0;i<this.decoyCount;i++){
         const da=this.orbAngle+i*(Math.PI*2/this.decoyCount);
         const dx2=this.x+Math.cos(da)*50,dy2=this.y+Math.sin(da)*50;
