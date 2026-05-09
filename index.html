@@ -9,6 +9,9 @@
   *{margin:0;padding:0;box-sizing:border-box;}
   :root{--c-bg:#050810;--c-player:#00f5ff;--c-enemy:#ff2d6b;--c-gold:#ffd700;--c-text:#c8d8ff;--c-accent:#7b2fff;}
   body{background:var(--c-bg);display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;overflow:hidden;font-family:'Share Tech Mono',monospace;}
+  @media (max-height:768px){
+    body{display:flex !important;}
+  }
   #gameWrap{position:relative;width:800px;height:600px;}
   canvas{display:block;border:1px solid #1a2550;box-shadow:0 0 60px rgba(0,245,255,0.08),0 0 120px rgba(123,47,255,0.05);}
   #ui{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;}
@@ -79,28 +82,27 @@
   #mobileActions{display:flex;gap:8px;flex:1;}
   #mobileDash{flex:0.7;}
   #mobileQ,#mobileE,#mobileR{flex:1;}
+  #mobileActions{display:none;}
   /* 조이스틱 스타일 */
   #mobileJoystick{position:relative;width:120px;height:120px;background:rgba(0,245,255,0.1);border:2px solid rgba(0,245,255,0.3);border-radius:50%;flex-shrink:0;touch-action:none;}
   #joystickBg{width:100%;height:100%;border-radius:50%;background:radial-gradient(circle at center, rgba(0,245,255,0.05) 0%, rgba(0,245,255,0.02) 100%);position:relative;}
   #joystickStick{position:absolute;width:40px;height:40px;background:radial-gradient(circle at center, rgba(0,245,255,0.8), rgba(0,245,255,0.4));border:1px solid rgba(0,245,255,0.6);border-radius:50%;top:50%;left:50%;transform:translate(-50%, -50%);box-shadow:0 0 15px rgba(0,245,255,0.5);transition:all 0.05s;pointer-events:none;}
 
+  /* 모바일 세로 모드 숨기기 */
   @media (max-width:768px) and (orientation:portrait){
-    #mobileControls{display:flex;flex-wrap:wrap;height:auto;width:100%;}
-    #gameWrap{width:100%;flex:1;max-width:none;}
-    canvas{width:100%;height:100%;}
-    #ui{width:100%;height:100%;position:absolute;top:0;left:0;}
-    body{flex-direction:column;justify-content:flex-start;}
+    body{display:none;}
   }
-  /* 가로 모드 (landscape) */
-  @media (max-width:1024px) and (orientation:landscape){
+  /* 모바일 가로 모드 */
+  @media (max-height:768px){
     body{flex-direction:row;justify-content:flex-start;align-items:center;gap:0;}
-    #mobileControls{display:flex;flex-direction:row;justify-content:flex-start;align-items:center;width:auto;height:100%;gap:8px;padding:8px;border-top:none;border-right:1px solid rgba(0,245,255,0.2);order:-1;}
+    #mobileControls{display:flex !important;flex-direction:row;justify-content:center;align-items:center;width:auto;height:100%;gap:8px;padding:8px;border-top:none;border-right:1px solid rgba(0,245,255,0.2);}
     #mobileJoystick{width:100px;height:100px;flex-shrink:0;}
-    #mobileActions{flex-direction:column;gap:4px;width:auto;flex-shrink:0;}
-    #mobileDash{width:50px;height:auto;flex:none;}
-    #mobileQ,#mobileE,#mobileR{width:50px;height:auto;flex:none;font-size:10px;padding:6px 4px;}
+    #mobileActions{display:flex !important;flex-direction:column;gap:4px;width:auto;flex-shrink:0;position:absolute;right:8px;top:50%;transform:translateY(-50%);touch-action:none;cursor:grab;}
+    #mobileActions.dragging{cursor:grabbing;}
+    #mobileDash{width:50px;height:50px;flex:none;}
+    #mobileQ,#mobileE,#mobileR{width:50px;height:50px;flex:none;font-size:10px;padding:6px 4px;}
     #gameWrap{width:auto;height:auto;flex:1;max-width:calc(100vw - 200px);max-height:100vh;}
-    canvas{width:100%;height:100%;max-width:600px;max-height:90vh;}
+    canvas{width:100%;height:100%;max-width:700px;max-height:100vh;}
     #ui{width:100%;height:100%;position:absolute;top:0;left:0;}
   }
 </style>
@@ -197,7 +199,16 @@ const norm=(v)=>{const m=Math.hypot(v.x,v.y)||1;return{x:v.x/m,y:v.y/m};};
 const easeOut=(t)=>1-Math.pow(1-t,3);
 const a2=(a,b)=>Math.atan2(b.y-a.y,b.x-a.x);
 
-const keys={},just={};
+// ── 모바일 가로 모드 고정 ──
+if(window.innerHeight<window.innerWidth){
+  try{if(screen.orientation&&screen.orientation.lock){screen.orientation.lock('landscape').catch(e=>{});}}catch(e){}
+}
+window.addEventListener('orientationchange',()=>{
+  if(window.innerHeight>window.innerWidth){
+    try{if(screen.orientation&&screen.orientation.lock){screen.orientation.lock('landscape').catch(e=>{});}}catch(e){}
+  }
+});
+
 document.addEventListener('keydown',e=>{if(!keys[e.code])just[e.code]=true;keys[e.key]=true;keys[e.code]=true;['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key)&&e.preventDefault();
   if((e.code==='KeyL'||e.code==='KeyM')&&keys['KeyL']&&keys['KeyM']&&game.state!=='admin'){game.openAdmin();}
   if(e.code==='Escape'&&game.state==='admin'){game.closeAdmin();}
@@ -253,9 +264,19 @@ joystickEl.addEventListener('mouseup',e=>{e.preventDefault();joystick.active=fal
 joystickEl.addEventListener('mouseleave',e=>{if(!joystick.active)return;joystick.active=false;joystick.x=0;joystick.y=0;joystickStick.style.transform='translate(-50%, -50%)';keys['ArrowUp']=false;keys['ArrowDown']=false;keys['ArrowLeft']=false;keys['ArrowRight']=false;keys['w']=false;keys['s']=false;keys['a']=false;keys['d']=false;});
 document.addEventListener('mouseup',e=>{joystick.active=false;joystick.x=0;joystick.y=0;joystickStick.style.transform='translate(-50%, -50%)';keys['ArrowUp']=false;keys['ArrowDown']=false;keys['ArrowLeft']=false;keys['ArrowRight']=false;keys['w']=false;keys['s']=false;keys['a']=false;keys['d']=false;});
 
+// ── 버튼 드래그 이동 ──
+const mobileActionsEl=document.getElementById('mobileActions');
+let dragState={isDragging:false,offsetX:0,offsetY:0};
+mobileActionsEl.addEventListener('touchstart',e=>{dragState.isDragging=true;dragState.offsetX=e.touches[0].clientX-mobileActionsEl.getBoundingClientRect().left;dragState.offsetY=e.touches[0].clientY-mobileActionsEl.getBoundingClientRect().top;mobileActionsEl.classList.add('dragging');});
+mobileActionsEl.addEventListener('touchmove',e=>{if(!dragState.isDragging)return;const x=e.touches[0].clientX-dragState.offsetX;const y=e.touches[0].clientY-dragState.offsetY;mobileActionsEl.style.left=x+'px';mobileActionsEl.style.top=y+'px';mobileActionsEl.style.right='auto';mobileActionsEl.style.transform='none';});
+mobileActionsEl.addEventListener('touchend',e=>{dragState.isDragging=false;mobileActionsEl.classList.remove('dragging');localStorage.setItem('buttonX',mobileActionsEl.style.left);localStorage.setItem('buttonY',mobileActionsEl.style.top);});
+mobileActionsEl.addEventListener('touchcancel',e=>{dragState.isDragging=false;mobileActionsEl.classList.remove('dragging');});
+mobileActionsEl.addEventListener('mousedown',e=>{dragState.isDragging=true;dragState.offsetX=e.clientX-mobileActionsEl.getBoundingClientRect().left;dragState.offsetY=e.clientY-mobileActionsEl.getBoundingClientRect().top;mobileActionsEl.classList.add('dragging');});
+document.addEventListener('mousemove',e=>{if(!dragState.isDragging)return;const x=e.clientX-dragState.offsetX;const y=e.clientY-dragState.offsetY;mobileActionsEl.style.left=x+'px';mobileActionsEl.style.top=y+'px';mobileActionsEl.style.right='auto';mobileActionsEl.style.transform='none';});
+document.addEventListener('mouseup',e=>{if(!dragState.isDragging)return;dragState.isDragging=false;mobileActionsEl.classList.remove('dragging');localStorage.setItem('buttonX',mobileActionsEl.style.left);localStorage.setItem('buttonY',mobileActionsEl.style.top);});
+// 저장된 위치 복원
+window.addEventListener('load',()=>{const x=localStorage.getItem('buttonX');const y=localStorage.getItem('buttonY');if(x)mobileActionsEl.style.left=x;if(y)mobileActionsEl.style.top=y;if(x||y){mobileActionsEl.style.right='auto';mobileActionsEl.style.transform='none';}});
 
-// ── PARTICLES ──
-class PS{
   constructor(){this.pool=[];this.active=[];}
   spawn(x,y,o={}){
     let p=this.pool.pop()||{};
