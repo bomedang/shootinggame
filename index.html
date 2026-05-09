@@ -93,13 +93,13 @@
   }
   /* 가로 모드 (landscape) */
   @media (max-width:1024px) and (orientation:landscape){
-    body{flex-direction:row;justify-content:center;align-items:center;gap:8px;}
-    #mobileControls{display:flex;flex-direction:column;justify-content:center;width:auto;height:100%;gap:8px;padding:8px;border-top:none;border-right:1px solid rgba(0,245,255,0.2);}
-    #mobileJoystick{width:100px;height:100px;}
-    #mobileActions{flex-direction:column;gap:4px;width:auto;}
+    body{flex-direction:row;justify-content:flex-start;align-items:center;gap:0;}
+    #mobileControls{display:flex;flex-direction:row;justify-content:flex-start;align-items:center;width:auto;height:100%;gap:8px;padding:8px;border-top:none;border-right:1px solid rgba(0,245,255,0.2);order:-1;}
+    #mobileJoystick{width:100px;height:100px;flex-shrink:0;}
+    #mobileActions{flex-direction:column;gap:4px;width:auto;flex-shrink:0;}
     #mobileDash{width:50px;height:auto;flex:none;}
     #mobileQ,#mobileE,#mobileR{width:50px;height:auto;flex:none;font-size:10px;padding:6px 4px;}
-    #gameWrap{width:auto;height:auto;flex:1;max-width:60vw;max-height:100vh;}
+    #gameWrap{width:auto;height:auto;flex:1;max-width:calc(100vw - 200px);max-height:100vh;}
     canvas{width:100%;height:100%;max-width:600px;max-height:90vh;}
     #ui{width:100%;height:100%;position:absolute;top:0;left:0;}
   }
@@ -163,7 +163,7 @@
     <div id="deathScreen">
       <div class="sub">HULL BREACH</div>
       <h1 class="title">DESTROYED</h1>
-      <div id="deathScore">0</div>
+      <div id="deathScore">0</div>ㄱ
       <div id="killCount">0 hostiles eliminated</div>
       <button class="btn" id="restartBtn">TRY AGAIN</button>
     </div>
@@ -866,8 +866,8 @@ const game={
   }
 };
 
-document.getElementById('startBtn').addEventListener('click',()=>{document.getElementById('startScreen').style.display='none';game.init();game.state='playing';});
-document.getElementById('restartBtn').addEventListener('click',()=>{document.getElementById('deathScreen').style.display='none';document.getElementById('bossBar').style.display='none';game.init();game.state='playing';});
+document.getElementById('startBtn').addEventListener('click',()=>{document.getElementById('startScreen').style.display='none';game.init();game.state='playing';const elem=document.documentElement;if(elem.requestFullscreen){elem.requestFullscreen();}else if(elem.webkitRequestFullscreen){elem.webkitRequestFullscreen();}else if(elem.mozRequestFullScreen){elem.mozRequestFullScreen();}else if(elem.msRequestFullscreen){elem.msRequestFullscreen();}});
+document.getElementById('restartBtn').addEventListener('click',()=>{document.getElementById('deathScreen').style.display='none';document.getElementById('bossBar').style.display='none';game.init();game.state='playing';const elem=document.documentElement;if(elem.requestFullscreen){elem.requestFullscreen();}else if(elem.webkitRequestFullscreen){elem.webkitRequestFullscreen();}else if(elem.mozRequestFullScreen){elem.mozRequestFullScreen();}else if(elem.msRequestFullscreen){elem.msRequestFullscreen();}});
 document.getElementById('admin-close').addEventListener('click',()=>{game.closeAdmin();});
 document.getElementById('admin-dup').addEventListener('click',()=>{game.applyAdmin({type:'repeat'});});
 
