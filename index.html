@@ -8,7 +8,7 @@
   @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap');
   *{margin:0;padding:0;box-sizing:border-box;}
   :root{--c-bg:#050810;--c-player:#00f5ff;--c-enemy:#ff2d6b;--c-gold:#ffd700;--c-text:#c8d8ff;--c-accent:#7b2fff;}
-  body{background:var(--c-bg);display:flex;align-items:center;justify-content:center;height:100vh;overflow:hidden;font-family:'Share Tech Mono',monospace;}
+  body{background:var(--c-bg);display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;overflow:hidden;font-family:'Share Tech Mono',monospace;}
   #gameWrap{position:relative;width:800px;height:600px;}
   canvas{display:block;border:1px solid #1a2550;box-shadow:0 0 60px rgba(0,245,255,0.08),0 0 120px rgba(123,47,255,0.05);}
   #ui{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;}
@@ -67,6 +67,25 @@
   #bossFill{height:100%;background:linear-gradient(90deg,#ff0040,#ff2d6b);transition:width 0.1s;}
   #comboPop{position:absolute;top:45%;left:50%;transform:translate(-50%,-50%);pointer-events:none;font-family:'Orbitron',sans-serif;font-size:30px;font-weight:900;opacity:0;transition:opacity 0.2s;text-shadow:0 0 30px currentColor;}
   #waveAnn{position:absolute;top:38%;left:50%;transform:translateX(-50%);font-family:'Orbitron',sans-serif;font-size:16px;letter-spacing:8px;color:#7b2fff;opacity:0;transition:opacity 0.4s;text-shadow:0 0 20px rgba(123,47,255,0.8);white-space:nowrap;}
+  /* 모바일 컨트롤 */
+  #mobileControls{display:none;width:100%;height:140px;background:rgba(5,8,16,0.95);border-top:1px solid rgba(0,245,255,0.2);pointer-events:all;gap:12px;padding:12px;position:relative;}
+  .mobile-btn{border:2px solid rgba(0,245,255,0.3);background:rgba(5,8,20,0.8);color:var(--c-player);cursor:pointer;border-radius:4px;font-family:'Orbitron',sans-serif;font-size:11px;font-weight:bold;transition:all 0.1s;touch-action:none;user-select:none;padding:8px 4px;}
+  .mobile-btn:active{background:rgba(0,245,255,0.3);border-color:var(--c-player);box-shadow:0 0 20px rgba(0,245,255,0.4);}
+  #mobileDir{display:grid;grid-template-columns:1fr 1fr 1fr;grid-template-rows:1fr 1fr 1fr;gap:4px;width:100px;flex-shrink:0;}
+  #mobileUp{grid-column:2;grid-row:1;}
+  #mobileLeft{grid-column:1;grid-row:2;}
+  #mobileDown{grid-column:2;grid-row:3;}
+  #mobileRight{grid-column:3;grid-row:2;}
+  #mobileActions{display:flex;gap:8px;flex:1;}
+  #mobileDash{flex:0.7;}
+  #mobileQ,#mobileE,#mobileR{flex:1;}
+  @media (max-width:768px){
+    #mobileControls{display:flex;flex-wrap:wrap;height:auto;}
+    #gameWrap{width:100%;flex:1;max-width:none;}
+    canvas{width:100%;height:100%;}
+    #ui{width:100%;height:100%;position:absolute;top:0;left:0;}
+    body{flex-direction:column;justify-content:flex-start;}
+  }
 </style>
 </head>
 <body>
@@ -133,6 +152,23 @@
     </div>
   </div>
 </div>
+
+<!-- 모바일 컨트롤 -->
+<div id="mobileControls">
+  <div id="mobileDir">
+    <button class="mobile-btn" id="mobileUp">▲</button>
+    <button class="mobile-btn" id="mobileLeft">◄</button>
+    <button class="mobile-btn" id="mobileDown">▼</button>
+    <button class="mobile-btn" id="mobileRight">►</button>
+  </div>
+  <div id="mobileActions">
+    <button class="mobile-btn" id="mobileDash">DASH<br>SHIFT</button>
+    <button class="mobile-btn" id="mobileQ">NOVA<br>Q</button>
+    <button class="mobile-btn" id="mobileE">SLOW<br>E</button>
+    <button class="mobile-btn" id="mobileR">CHAIN<br>R</button>
+  </div>
+</div>
+
 <script>
 'use strict';
 const canvas=document.getElementById('c'),ctx=canvas.getContext('2d');
@@ -152,6 +188,29 @@ document.addEventListener('keydown',e=>{if(!keys[e.code])just[e.code]=true;keys[
   if(e.code==='Escape'&&game.state==='admin'){game.closeAdmin();}
 });
 document.addEventListener('keyup',e=>{keys[e.key]=false;keys[e.code]=false;});
+
+// ── 모바일 터치 컨트롤 ──
+const touchKeys={};
+const mobileButtons=[
+  {id:'mobileUp',keyCode:'ArrowUp',key:'w'},
+  {id:'mobileDown',keyCode:'ArrowDown',key:'s'},
+  {id:'mobileLeft',keyCode:'ArrowLeft',key:'a'},
+  {id:'mobileRight',keyCode:'ArrowRight',key:'d'},
+  {id:'mobileDash',keyCode:'ShiftLeft',key:'Shift'},
+  {id:'mobileQ',keyCode:'KeyQ',key:'q'},
+  {id:'mobileE',keyCode:'KeyE',key:'e'},
+  {id:'mobileR',keyCode:'KeyR',key:'r'},
+];
+mobileButtons.forEach(btn=>{
+  const el=document.getElementById(btn.id);
+  el.addEventListener('touchstart',e=>{e.preventDefault();keys[btn.keyCode]=true;keys[btn.key]=true;just[btn.keyCode]=true;touchKeys[btn.id]=true;});
+  el.addEventListener('touchend',e=>{e.preventDefault();keys[btn.keyCode]=false;keys[btn.key]=false;delete touchKeys[btn.id];});
+  el.addEventListener('touchcancel',e=>{e.preventDefault();keys[btn.keyCode]=false;keys[btn.key]=false;delete touchKeys[btn.id];});
+  el.addEventListener('mousedown',e=>{e.preventDefault();keys[btn.keyCode]=true;keys[btn.key]=true;just[btn.keyCode]=true;touchKeys[btn.id]=true;});
+  el.addEventListener('mouseup',e=>{e.preventDefault();keys[btn.keyCode]=false;keys[btn.key]=false;delete touchKeys[btn.id];});
+  el.addEventListener('mouseleave',e=>{keys[btn.keyCode]=false;keys[btn.key]=false;delete touchKeys[btn.id];});
+});
+
 
 // ── PARTICLES ──
 class PS{
