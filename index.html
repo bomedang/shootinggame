@@ -79,7 +79,11 @@
   #mobileActions{display:flex;gap:8px;flex:1;}
   #mobileDash{flex:0.7;}
   #mobileQ,#mobileE,#mobileR{flex:1;}
-  /* 세로 모드 (portrait) */
+  /* 조이스틱 스타일 */
+  #mobileJoystick{position:relative;width:120px;height:120px;background:rgba(0,245,255,0.1);border:2px solid rgba(0,245,255,0.3);border-radius:50%;flex-shrink:0;touch-action:none;}
+  #joystickBg{width:100%;height:100%;border-radius:50%;background:radial-gradient(circle at center, rgba(0,245,255,0.05) 0%, rgba(0,245,255,0.02) 100%);position:relative;}
+  #joystickStick{position:absolute;width:40px;height:40px;background:radial-gradient(circle at center, rgba(0,245,255,0.8), rgba(0,245,255,0.4));border:1px solid rgba(0,245,255,0.6);border-radius:50%;top:50%;left:50%;transform:translate(-50%, -50%);box-shadow:0 0 15px rgba(0,245,255,0.5);transition:all 0.05s;pointer-events:none;}
+
   @media (max-width:768px) and (orientation:portrait){
     #mobileControls{display:flex;flex-wrap:wrap;height:auto;width:100%;}
     #gameWrap{width:100%;flex:1;max-width:none;}
@@ -91,8 +95,7 @@
   @media (max-width:1024px) and (orientation:landscape){
     body{flex-direction:row;justify-content:center;align-items:center;gap:8px;}
     #mobileControls{display:flex;flex-direction:column;justify-content:center;width:auto;height:100%;gap:8px;padding:8px;border-top:none;border-right:1px solid rgba(0,245,255,0.2);}
-    #mobileDir{width:auto;gap:2px;}
-    #mobileUp,#mobileLeft,#mobileDown,#mobileRight{width:40px;height:40px;padding:0;font-size:16px;}
+    #mobileJoystick{width:100px;height:100px;}
     #mobileActions{flex-direction:column;gap:4px;width:auto;}
     #mobileDash{width:50px;height:auto;flex:none;}
     #mobileQ,#mobileE,#mobileR{width:50px;height:auto;flex:none;font-size:10px;padding:6px 4px;}
@@ -169,11 +172,9 @@
 
 <!-- 모바일 컨트롤 -->
 <div id="mobileControls">
-  <div id="mobileDir">
-    <button class="mobile-btn" id="mobileUp">▲</button>
-    <button class="mobile-btn" id="mobileLeft">◄</button>
-    <button class="mobile-btn" id="mobileDown">▼</button>
-    <button class="mobile-btn" id="mobileRight">►</button>
+  <div id="mobileJoystick">
+    <div id="joystickBg"></div>
+    <div id="joystickStick"></div>
   </div>
   <div id="mobileActions">
     <button class="mobile-btn" id="mobileDash">DASH<br>SHIFT</button>
@@ -206,10 +207,6 @@ document.addEventListener('keyup',e=>{keys[e.key]=false;keys[e.code]=false;});
 // ── 모바일 터치 컨트롤 ──
 const touchKeys={};
 const mobileButtons=[
-  {id:'mobileUp',keyCode:'ArrowUp',key:'w'},
-  {id:'mobileDown',keyCode:'ArrowDown',key:'s'},
-  {id:'mobileLeft',keyCode:'ArrowLeft',key:'a'},
-  {id:'mobileRight',keyCode:'ArrowRight',key:'d'},
   {id:'mobileDash',keyCode:'ShiftLeft',key:'Shift'},
   {id:'mobileQ',keyCode:'KeyQ',key:'q'},
   {id:'mobileE',keyCode:'KeyE',key:'e'},
@@ -224,6 +221,37 @@ mobileButtons.forEach(btn=>{
   el.addEventListener('mouseup',e=>{e.preventDefault();keys[btn.keyCode]=false;keys[btn.key]=false;delete touchKeys[btn.id];});
   el.addEventListener('mouseleave',e=>{keys[btn.keyCode]=false;keys[btn.key]=false;delete touchKeys[btn.id];});
 });
+
+// ── 조이스틱 컨트롤 ──
+const joystick={x:0,y:0,active:false};
+const joystickEl=document.getElementById('mobileJoystick');
+const joystickStick=document.getElementById('joystickStick');
+const deadzone=15;const maxRadius=40;
+function updateJoystick(clientX,clientY){
+  const rect=joystickEl.getBoundingClientRect();
+  const centerX=rect.left+rect.width/2;
+  const centerY=rect.top+rect.height/2;
+  let dx=clientX-centerX;let dy=clientY-centerY;
+  const distance=Math.hypot(dx,dy);
+  if(distance<deadzone){dx=0;dy=0;}else{
+    const scale=Math.min(maxRadius,distance)/distance;
+    dx*=scale;dy*=scale;
+  }
+  joystick.x=dx;joystick.y=dy;
+  joystickStick.style.transform=`translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+  // 방향키 업데이트
+  keys['ArrowUp']=dy<-deadzone;keys['ArrowDown']=dy>deadzone;keys['ArrowLeft']=dx<-deadzone;keys['ArrowRight']=dx>deadzone;
+  keys['w']=dy<-deadzone;keys['s']=dy>deadzone;keys['a']=dx<-deadzone;keys['d']=dx>deadzone;
+}
+joystickEl.addEventListener('touchstart',e=>{e.preventDefault();joystick.active=true;const t=e.touches[0];updateJoystick(t.clientX,t.clientY);});
+joystickEl.addEventListener('touchmove',e=>{e.preventDefault();if(!joystick.active)return;const t=e.touches[0];updateJoystick(t.clientX,t.clientY);});
+joystickEl.addEventListener('touchend',e=>{e.preventDefault();joystick.active=false;joystick.x=0;joystick.y=0;joystickStick.style.transform='translate(-50%, -50%)';keys['ArrowUp']=false;keys['ArrowDown']=false;keys['ArrowLeft']=false;keys['ArrowRight']=false;keys['w']=false;keys['s']=false;keys['a']=false;keys['d']=false;});
+joystickEl.addEventListener('touchcancel',e=>{e.preventDefault();joystick.active=false;joystick.x=0;joystick.y=0;joystickStick.style.transform='translate(-50%, -50%)';keys['ArrowUp']=false;keys['ArrowDown']=false;keys['ArrowLeft']=false;keys['ArrowRight']=false;keys['w']=false;keys['s']=false;keys['a']=false;keys['d']=false;});
+joystickEl.addEventListener('mousedown',e=>{e.preventDefault();joystick.active=true;updateJoystick(e.clientX,e.clientY);});
+joystickEl.addEventListener('mousemove',e=>{if(!joystick.active)return;updateJoystick(e.clientX,e.clientY);});
+joystickEl.addEventListener('mouseup',e=>{e.preventDefault();joystick.active=false;joystick.x=0;joystick.y=0;joystickStick.style.transform='translate(-50%, -50%)';keys['ArrowUp']=false;keys['ArrowDown']=false;keys['ArrowLeft']=false;keys['ArrowRight']=false;keys['w']=false;keys['s']=false;keys['a']=false;keys['d']=false;});
+joystickEl.addEventListener('mouseleave',e=>{if(!joystick.active)return;joystick.active=false;joystick.x=0;joystick.y=0;joystickStick.style.transform='translate(-50%, -50%)';keys['ArrowUp']=false;keys['ArrowDown']=false;keys['ArrowLeft']=false;keys['ArrowRight']=false;keys['w']=false;keys['s']=false;keys['a']=false;keys['d']=false;});
+document.addEventListener('mouseup',e=>{joystick.active=false;joystick.x=0;joystick.y=0;joystickStick.style.transform='translate(-50%, -50%)';keys['ArrowUp']=false;keys['ArrowDown']=false;keys['ArrowLeft']=false;keys['ArrowRight']=false;keys['w']=false;keys['s']=false;keys['a']=false;keys['d']=false;});
 
 
 // ── PARTICLES ──
