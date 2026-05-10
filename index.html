@@ -9,11 +9,8 @@
   *{margin:0;padding:0;box-sizing:border-box;}
   :root{--c-bg:#050810;--c-player:#00f5ff;--c-enemy:#ff2d6b;--c-gold:#ffd700;--c-text:#c8d8ff;--c-accent:#7b2fff;}
   body{background:var(--c-bg);display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;overflow:hidden;font-family:'Share Tech Mono',monospace;}
-  @media (max-height:768px){
-    body{display:flex !important;}
-  }
   #gameWrap{position:relative;width:800px;height:600px;}
-  canvas{display:block;border:1px solid #1a2550;box-shadow:0 0 60px rgba(0,245,255,0.08),0 0 120px rgba(123,47,255,0.05);}
+  canvas{display:block;width:100%;height:100%;border:1px solid #1a2550;box-shadow:0 0 60px rgba(0,245,255,0.08),0 0 120px rgba(123,47,255,0.05);}
   #ui{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;}
   #hud{position:absolute;top:12px;left:12px;right:12px;display:flex;align-items:flex-start;justify-content:space-between;}
   .stat-block{display:flex;flex-direction:column;gap:4px;}
@@ -82,34 +79,26 @@
   #mobileActions{display:flex;gap:8px;flex:1;}
   #mobileDash{flex:0.7;}
   #mobileQ,#mobileE,#mobileR{flex:1;}
-  #mobileActions{display:none;}
   /* 조이스틱 스타일 */
   #mobileJoystick{position:relative;width:120px;height:120px;background:rgba(0,245,255,0.1);border:2px solid rgba(0,245,255,0.3);border-radius:50%;flex-shrink:0;touch-action:none;}
   #joystickBg{width:100%;height:100%;border-radius:50%;background:radial-gradient(circle at center, rgba(0,245,255,0.05) 0%, rgba(0,245,255,0.02) 100%);position:relative;}
   #joystickStick{position:absolute;width:40px;height:40px;background:radial-gradient(circle at center, rgba(0,245,255,0.8), rgba(0,245,255,0.4));border:1px solid rgba(0,245,255,0.6);border-radius:50%;top:50%;left:50%;transform:translate(-50%, -50%);box-shadow:0 0 15px rgba(0,245,255,0.5);transition:all 0.05s;pointer-events:none;}
-
-  /* 모바일 세로 모드 숨기기 */
-  @media (max-width:768px) and (orientation:portrait){
-    body{display:none;}
-  }
-  /* 모바일 가로 모드 */
-  @media (max-height:768px){
-    body{flex-direction:row;justify-content:flex-start;align-items:center;gap:0;}
-    #mobileControls{display:flex !important;flex-direction:row;justify-content:center;align-items:center;width:auto;height:100%;gap:8px;padding:8px;border-top:none;border-right:1px solid rgba(0,245,255,0.2);}
-    #mobileJoystick{width:100px;height:100px;flex-shrink:0;}
-    #mobileActions{display:flex !important;flex-direction:column;gap:4px;width:auto;flex-shrink:0;position:absolute;right:8px;top:50%;transform:translateY(-50%);touch-action:none;cursor:grab;}
-    #mobileActions.dragging{cursor:grabbing;}
-    #mobileDash{width:50px;height:50px;flex:none;}
-    #mobileQ,#mobileE,#mobileR{width:50px;height:50px;flex:none;font-size:10px;padding:6px 4px;}
-    #gameWrap{width:auto;height:auto;flex:1;max-width:calc(100vw - 200px);max-height:100vh;}
-    canvas{width:800px;height:600px;max-width:100%;max-height:100vh;object-fit:contain;}
-    #ui{width:100%;height:100%;position:absolute;top:0;left:0;}
-  }
+  /* 모바일 모드 레이아웃 */
+  body.mobile-mode{flex-direction:row;justify-content:flex-start;align-items:center;gap:0;}
+  body.mobile-mode #mobileControls{display:flex;flex-direction:row;justify-content:center;align-items:center;width:auto;height:100%;gap:8px;padding:8px;border-top:none;border-right:1px solid rgba(0,245,255,0.2);}
+  body.mobile-mode #mobileJoystick{width:100px;height:100px;flex-shrink:0;}
+  body.mobile-mode #mobileActions{display:flex;flex-direction:column;gap:4px;width:auto;flex-shrink:0;position:absolute;right:8px;top:50%;transform:translateY(-50%);touch-action:none;cursor:grab;}
+  body.mobile-mode #mobileActions.dragging{cursor:grabbing;}
+  body.mobile-mode #mobileDash{width:50px;height:50px;flex:none;}
+  body.mobile-mode #mobileQ,#mobileE,#mobileR{width:50px;height:50px;flex:none;font-size:10px;padding:6px 4px;}
+  body.mobile-mode #gameWrap{width:100vw;height:100vh;}
+  body.mobile-mode canvas{width:800px;height:600px;max-width:100%;max-height:100vh;object-fit:contain;}
+  body.mobile-mode #ui{width:100%;height:100%;position:absolute;top:0;left:0;}
 </style>
 </head>
 <body>
 <div id="gameWrap">
-  <canvas id="c" width="800" height="600"></canvas>
+  <canvas id="c"></canvas>
   <div id="ui">
     <div id="hud">
       <div class="stat-block">
@@ -190,6 +179,8 @@
 'use strict';
 const canvas=document.getElementById('c'),ctx=canvas.getContext('2d');
 const W=800,H=600;
+canvas.width = W;
+canvas.height = H;
 const rnd=(a,b)=>Math.random()*(b-a)+a;
 const rndInt=(a,b)=>Math.floor(rnd(a,b+1));
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -209,25 +200,34 @@ window.addEventListener('orientationchange',()=>{
   }
 });
 
-// ── 모바일 컨트롤 표시 여부 ──
-function isMobile() {
-  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
-         ('ontouchstart' in window) || 
-         (window.innerWidth <= 768 && window.innerHeight <= 768);
-}
-function updateMobileControls() {
-  const mobileControls = document.getElementById('mobileControls');
-  if (isMobile()) {
+// ── 모바일 모드 토글 ──
+let mobileMode = false;
+function toggleMobileMode() {
+  mobileMode = !mobileMode;
+  const body = document.body;
+  const mobileControls = document.getElementById('mobileCControls');
+  if (mobileMode) {
+    body.classList.add('mobile-mode');
     mobileControls.style.display = 'flex';
   } else {
+    body.classList.remove('mobile-mode');
     mobileControls.style.display = 'none';
   }
+  // 저장
+  localStorage.setItem('mobileMode', mobileMode);
 }
-window.addEventListener('load', updateMobileControls);
-window.addEventListener('resize', updateMobileControls);
+// 로드 시 복원
+window.addEventListener('load', () => {
+  const saved = localStorage.getItem('mobileMode');
+  if (saved === 'true') {
+    mobileMode = true;
+    toggleMobileMode();
+  }
+});
 
 document.addEventListener('keydown',e=>{if(!keys[e.code])just[e.code]=true;keys[e.key]=true;keys[e.code]=true;['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key)&&e.preventDefault();
   if((e.code==='KeyL'||e.code==='KeyM')&&keys['KeyL']&&keys['KeyM']&&game.state!=='admin'){game.openAdmin();}
+  if(e.code==='KeyM' && !keys['KeyL']){toggleMobileMode();} // M 키로 모바일 모드 토글
   if(e.code==='Escape'&&game.state==='admin'){game.closeAdmin();}
 });
 document.addEventListener('keyup',e=>{keys[e.key]=false;keys[e.code]=false;});
@@ -904,14 +904,16 @@ const game={
   }
 };
 
-document.getElementById('startBtn').addEventListener('click',()=>{document.getElementById('startScreen').style.display='none';game.init();game.state='playing';const elem=document.documentElement;if(elem.requestFullscreen){elem.requestFullscreen();}else if(elem.webkitRequestFullscreen){elem.webkitRequestFullscreen();}else if(elem.mozRequestFullScreen){elem.mozRequestFullScreen();}else if(elem.msRequestFullscreen){elem.msRequestFullscreen();}});
-document.getElementById('restartBtn').addEventListener('click',()=>{document.getElementById('deathScreen').style.display='none';document.getElementById('bossBar').style.display='none';game.init();game.state='playing';const elem=document.documentElement;if(elem.requestFullscreen){elem.requestFullscreen();}else if(elem.webkitRequestFullscreen){elem.webkitRequestFullscreen();}else if(elem.mozRequestFullScreen){elem.mozRequestFullScreen();}else if(elem.msRequestFullscreen){elem.msRequestFullscreen();}});
-document.getElementById('admin-close').addEventListener('click',()=>{game.closeAdmin();});
-document.getElementById('admin-dup').addEventListener('click',()=>{game.applyAdmin({type:'repeat'});});
+window.addEventListener('load', () => {
+  document.getElementById('startBtn').addEventListener('click',()=>{document.getElementById('startScreen').style.display='none';game.init();game.state='playing';});
+  document.getElementById('restartBtn').addEventListener('click',()=>{document.getElementById('deathScreen').style.display='none';document.getElementById('bossBar').style.display='none';game.init();game.state='playing';});
+  document.getElementById('admin-close').addEventListener('click',()=>{game.closeAdmin();});
+  document.getElementById('admin-dup').addEventListener('click',()=>{game.applyAdmin({type:'repeat'});});
+  requestAnimationFrame(loop);
+});
 
 let last=0;
 function loop(ts){requestAnimationFrame(loop);last=ts;game.update();game.draw();}
-requestAnimationFrame(loop);
 </script>
 </body>
 </html>
