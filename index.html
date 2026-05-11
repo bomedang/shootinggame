@@ -612,6 +612,15 @@ const UPGRADES=[
   {r:true, icon:'💫',name:'HAIL FIRE', desc:'★ Primary fire gains +1 multi-shot',         apply:p=>{p.multiShot=Math.min(5,p.multiShot+1);}},
 ];
 function getChoices(){const common=UPGRADES.filter(u=>!u.r).sort(()=>Math.random()-0.5).slice(0,3);const rare=UPGRADES.filter(u=>u.r).sort(()=>Math.random()-0.5).slice(0,1);return [...common,...rare].sort(()=>Math.random()-0.5);}
+const PRESTART_SKILLS=[
+  {icon:'🛡️',name:'SHIELD BOOST',desc:'Start with +40 shield and faster recharge',apply:p=>{p.maxShield+=40;p.shield=p.maxShield;p.shieldRecharge=true;}},
+  {icon:'🔥',name:'OVERPOWER',desc:'Start with +35% bullet damage',apply:p=>{p.bulletDmg*=1.35;}},
+  {icon:'💨',name:'QUICKENING',desc:'Start with +20% speed and slightly faster fire',apply:p=>{p.speed*=1.2;p.fireRate=Math.max(6,Math.floor(p.fireRate*0.9));}},
+  {icon:'🌐',name:'MAGNETIC CORE',desc:'Start with strong XP magnet and an extra orb',apply:p=>{p.magnet*=1.5;p.orbCount++;}},
+  {icon:'🎯',name:'PIERCING EDGE',desc:'Start with +1 bullet pierce',apply:p=>{p.bulletPierce++;}},
+];
+let selectedStartSkill=PRESTART_SKILLS[0];
+function renderStartSkills(){const grid=document.getElementById('skill-grid');grid.innerHTML='';PRESTART_SKILLS.forEach(s=>{const card=document.createElement('div');card.className='skill-card'+(selectedStartSkill===s?' selected':'');card.innerHTML=`<div class="upg-icon">${s.icon}</div><div class="upg-name">${s.name}</div><div class="upg-desc">${s.desc}</div>`;card.addEventListener('click',()=>{selectedStartSkill=s;renderStartSkills();});grid.appendChild(card);});}
 const ADMIN_ACTIONS=[
   {label:'+10000 SCORE',type:'score',value:10000,desc:'Instantly add score.'},
   {label:'+200 XP',type:'xp',value:200,desc:'Gain experience points.'},
