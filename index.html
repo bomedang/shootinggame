@@ -48,6 +48,15 @@
   .upg-card.rare{border-color:rgba(255,215,0,0.5);}
   .upg-card.rare:hover{border-color:#ffd700;box-shadow:0 8px 24px rgba(255,215,0,0.3);}
   .upg-icon{font-size:28px;margin-bottom:8px;}
+  .skill-panel{margin-top:16px;width:100%;max-width:700px;text-align:center;}
+  .skill-panel .sub{font-size:10px;color:#7b2fff;letter-spacing:4px;margin-bottom:10px;}
+  .skill-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:10px;}
+  .skill-card{background:rgba(7,11,28,0.9);border:1px solid rgba(255,255,255,0.08);padding:12px 10px;cursor:pointer;transition:all 0.15s;}
+  .skill-card:hover{background:rgba(255,255,255,0.05);border-color:rgba(0,245,255,0.2);}
+  .skill-card.selected{border-color:#00f5ff;background:rgba(0,245,255,0.08);}
+  .skill-card .upg-icon{font-size:24px;}
+  .skill-card .upg-name{font-family:'Orbitron',sans-serif;font-size:10px;color:#00f5ff;letter-spacing:1.5px;margin-bottom:6px;}
+  .skill-card .upg-desc{font-size:10px;color:#6a7a9a;line-height:1.4;}
   .upg-name{font-family:'Orbitron',sans-serif;font-size:10px;color:var(--c-player);letter-spacing:2px;margin-bottom:6px;}
   .upg-name.r{color:#ffd700;}
   .upg-desc{font-size:10px;color:#6a7a9a;line-height:1.5;}
@@ -99,10 +108,6 @@
         <div class="ab-cd-bar" id="cdE"></div><div class="ab-ov" id="ovE"></div></div>
       <div class="ab-slot"><div class="ab-icon">⚡</div><div class="ab-label">CHAIN [R]</div>
         <div class="ab-cd-bar" id="cdR"></div><div class="ab-ov" id="ovR"></div></div>
-      <div class="ab-slot"><div class="ab-icon">🌪️</div><div class="ab-label">GRAVITY [G]</div>
-        <div class="ab-cd-bar" id="cdG"></div><div class="ab-ov" id="ovG"></div></div>
-      <div class="ab-slot"><div class="ab-icon">💫</div><div class="ab-label">BURST [T]</div>
-        <div class="ab-cd-bar" id="cdT"></div><div class="ab-ov" id="ovT"></div></div>
     </div>
 
     <div id="upgradePanel"><h2>— POWER SURGE —</h2><div class="upg-grid" id="upg-grid"></div></div>
@@ -124,9 +129,11 @@
         <div class="hint"><span>Q</span> Nova Burst</div>
         <div class="hint"><span>E</span> Time Slow</div>
         <div class="hint"><span>R</span> Chain Lightning</div>
-        <div class="hint"><span>G</span> Gravity Well</div>
-        <div class="hint"><span>T</span> Burst Cannon</div>
         <div class="hint"><span>Auto</span> Fire</div>
+      </div>
+      <div class="skill-panel">
+        <div class="sub">SELECT A STARTING SKILL</div>
+        <div class="skill-grid" id="skill-grid"></div>
       </div>
       <button class="btn" id="startBtn">ENTER THE RIFT</button>
     </div>
@@ -237,8 +244,6 @@ class Player{
     this.novaCd=0;this.novaMax=300;
     this.slowCd=0;this.slowMax=420;
     this.chainCd=0;this.chainMax=240;
-    this.gravityCd=0;this.gravityMax=360;this.gravityBonus=false;
-    this.burstCd=0;this.burstMax=240;this.burstOverflow=false;
   }
   update(particles,bullets,lightning){
     let mx=0,my=0;
@@ -251,8 +256,6 @@ class Player{
     if(just['KeyQ'])this.useNova(particles);
     if(just['KeyE'])this.useSlow(particles);
     if(just['KeyR'])this.useChain(particles,lightning);
-    if(just['KeyG'])this.useGravity(particles);
-    if(just['KeyT'])this.useBurst(particles);
 
     if((keys['Shift']||keys['ShiftLeft']||keys['ShiftRight'])&&this.dashCd<=0&&!this.dashing&&(mx||my)){
       this.dashing=true;this.dashTime=14;this.dashDx=mx;this.dashDy=my;
@@ -277,11 +280,10 @@ class Player{
     }
     this.x=clamp(this.x+this.vx,this.size,W-this.size);
     this.y=clamp(this.y+this.vy,this.size,H-this.size);
-    [this.dashCd,this.iframes,this.flashT,this.novaCd,this.slowCd,this.chainCd,this.gravityCd,this.burstCd,this.engineT].forEach((_,i,a)=>{if(a[i]>0)a[i]--;});
+    [this.dashCd,this.iframes,this.flashT,this.novaCd,this.slowCd,this.chainCd,this.engineT].forEach((_,i,a)=>{if(a[i]>0)a[i]--;});
     this.dashCd=Math.max(0,this.dashCd-1);this.iframes=Math.max(0,this.iframes-1);
     this.flashT=Math.max(0,this.flashT-1);this.novaCd=Math.max(0,this.novaCd-1);
     this.slowCd=Math.max(0,this.slowCd-1);this.chainCd=Math.max(0,this.chainCd-1);
-    this.gravityCd=Math.max(0,this.gravityCd-1);this.burstCd=Math.max(0,this.burstCd-1);
     this.engineT++;
 
     const ne=game.nearestEnemy(this.x,this.y);
@@ -362,20 +364,6 @@ class Player{
     }
     game.shake(4);
   }
-  useGravity(particles){
-    if(this.gravityCd>0)return;this.gravityCd=this.gravityMax;
-    game.shake(6);particles.ring(this.x,this.y,28,{color:'#6b8cff',size:4,speed:6,decay:0.05,shrink:false});
-    const near=game.enemies.filter(e=>e.alive&&e.spawnT<=0&&dist(e,this)<260);
-    for(const e of near){const d=dist(e,this),pull=1-(d/260);const nx=(this.x-e.x)/Math.max(d,1),ny=(this.y-e.y)/Math.max(d,1);e.vx+=nx*8*pull;e.vy+=ny*8*pull;const dmg=this.bulletDmg*2*(1+0.25*pull)*(this.gravityBonus?1.15:1);e.takeDamage(dmg,particles,this);game.lightning.add(e.x,e.y,this.x,this.y,'#88d4ff',10);}
-    if(this.gravityBonus)game.slowTime=Math.max(game.slowTime,60);
-  }
-  useBurst(particles){
-    if(this.burstCd>0)return;this.burstCd=this.burstMax;
-    game.shake(5);particles.burst(this.x,this.y,18,{color:'#ff77ff',size:4,speed:6,decay:0.05});
-    const shots=12+(this.burstOverflow?4:0);
-    for(let i=0;i<shots;i++){const ang=i/(shots)*Math.PI*2;game.bullets.fire(this.x,this.y,Math.cos(ang),Math.sin(ang),{speed:9,dmg:this.bulletDmg*1.6,size:5,color:'#ff55ff',pierce:1,life:70});}
-    if(this.burstOverflow)for(let j=0;j<6;j++){const ang=j/6*Math.PI*2;game.bullets.fire(this.x,this.y,Math.cos(ang),Math.sin(ang),{speed:8,dmg:this.bulletDmg*1.2,size:4,color:'#ffbbea',pierce:0,life:60});}
-  }
   takeDamage(dmg,particles){
     if(this.iframes>0)return;
     if(this.shield>0){const abs=Math.min(this.shield,dmg);this.shield-=abs;dmg-=abs;particles.burst(this.x,this.y,8,{color:'#00a8ff',size:3,speed:3,decay:0.08});}
@@ -421,10 +409,9 @@ class Enemy{
       case 'swarm':    this.hp=2;   this.maxHp=2;   this.speed=rnd(1.6,2.2); this.size=6; this.dmg=4; this.xp=2; this.score=8;  this.color='#ff1a75';break;
       case 'elite':    this.hp=80;  this.maxHp=80;  this.speed=rnd(1.1,1.5); this.size=22;this.dmg=22;this.xp=20;this.score=80; this.color='#ff0080';this.shootCd=0;this.shootRate=60;break;
       case 'bomber':   this.hp=20;  this.maxHp=20;  this.speed=rnd(1.8,2.4); this.size=13;this.dmg=30;this.xp=12;this.score=35; this.color='#ff6600';this.fuseT=0;this.fuseMax=120;break;
-      case 'phantom':  this.hp=15;  this.maxHp=15;  this.speed=rnd(1.4,1.9); this.size=9; this.dmg=10;this.xp=8; this.score=28; this.color='#cc44ff';this.tpCd=200;this.alphaV=1;break;
-      case 'splitter': this.hp=30;  this.maxHp=30;  this.speed=rnd(0.7,1.0); this.size=16;this.dmg=12;this.xp=9; this.score=32; this.color='#ffaa00';break;
+      case 'phantom':  this.hp=15;  this.maxHp=15;  this.speed=rnd(1.4,1.9); this.size=9; this.dmg=10;this.xp=8; this.score=28; this.color='#cc44ff';this.tpCd=200;this.alphaV=1;break;      case 'charger':  this.hp=18;  this.maxHp=18;  this.speed=rnd(1.4,2.2); this.size=10;this.dmg=18;this.xp=8; this.score=26; this.color='#55ccff';this.chargeT=0;this.chargeMax=120;break;      case 'splitter': this.hp=30;  this.maxHp=30;  this.speed=rnd(0.7,1.0); this.size=16;this.dmg=12;this.xp=9; this.score=32; this.color='#ffaa00';break;
       case 'sniper':   this.hp=10;  this.maxHp=10;  this.speed=rnd(0.3,0.5); this.size=10;this.dmg=25;this.xp=10;this.score=30; this.color='#ff4488';this.shootCd=0;this.shootRate=180;this.charging=0;break;
-      case 'boss':     this.hp=500; this.maxHp=500; this.speed=1.2;          this.size=34;this.dmg=30;this.xp=60;this.score=500; this.color='#ff0044';this.shootCd=0;this.shootRate=30;this.phase=1;this.spinA=0;break;
+      case 'boss':     this.hp=500; this.maxHp=1500; this.speed=1.2;          this.size=34;this.dmg=30;this.xp=600;this.score=500; this.color='#ff0044';this.shootCd=0;this.shootRate=30;this.phase=1;this.spinA=0;break;
     }
   }
   update(player,bullets,particles,wave,lightning){
@@ -466,6 +453,11 @@ class Enemy{
         if(this.tpCd<=0&&d>80){const tpD=60+rnd(-20,20);this.x=clamp(player.x-nx*tpD,this.size,W-this.size);this.y=clamp(player.y-ny*tpD,this.size,H-this.size);this.tpCd=200;particles.ring(this.x,this.y,12,{color:'#cc44ff',size:3,speed:4,decay:0.1});this.alphaV=0.15;}
         this.alphaV=Math.min(1,this.alphaV+0.04);
         this.vx+=(nx*this.speed*aggr*sf-this.vx)*0.08;this.vy+=(ny*this.speed*aggr*sf-this.vy)*0.08;
+        break;}
+      case 'charger':{
+        if(this.chargeT>0){this.chargeT--;}
+        if(this.chargeT<=0&&d<260){this.chargeT=this.chargeMax;this.vx=nx*8;this.vy=ny*8;particles.burst(this.x,this.y,10,{color:'#55ccff',size:3,speed:4,decay:0.08});}
+        this.vx+=(nx*this.speed*aggr*sf-this.vx)*0.09;this.vy+=(ny*this.speed*aggr*sf-this.vy)*0.09;
         break;}
       case 'boss':{
         this.spinA+=0.04;
@@ -577,10 +569,10 @@ const UPGRADES=[
   {r:false,icon:'🤖',name:'DRONE TURRET',  desc:'Deploy an auto-firing drone around you',      apply:p=>{p.decoyCount=Math.min(3,p.decoyCount+1);}},
   {r:false,icon:'🔋',name:'NOVA CHARGE',   desc:'Nova Burst cooldown -40%',                    apply:p=>{p.novaMax=Math.floor(p.novaMax*0.6);}},
   {r:false,icon:'🕰️',name:'CHRONO LENS',   desc:'Time Slow duration +70%, cooldown -30%',      apply:p=>{p.slowMax=Math.floor(p.slowMax*0.7);}},
-  {r:false,icon:'🌌',name:'GRAVITY CORE',  desc:'Gravity Well cooldown -30%',                 apply:p=>{p.gravityMax=Math.max(180,Math.floor(p.gravityMax*0.7));}},
-  {r:false,icon:'💥',name:'BURST DRIVE',   desc:'Burst Cannon cooldown -25%',                 apply:p=>{p.burstMax=Math.max(160,Math.floor(p.burstMax*0.75));}},
-  {r:false,icon:'🌃',name:'ARCANE GRIP',   desc:'Gravity Well pulls 20% harder',              apply:p=>{p.gravityBonus=true;}},
-  {r:false,icon:'🌟',name:'STARBURST',     desc:'Burst Cannon fires 4 extra projectiles',      apply:p=>{p.burstOverflow=true;}},
+  {r:false,icon:'🌌',name:'KINETIC CORE',  desc:'Bullet damage +15% and movement +5%',        apply:p=>{p.bulletDmg*=1.15;p.speed*=1.05;}},
+  {r:false,icon:'💥',name:'RAPID CHARGE',   desc:'Fire rate improves by 15%',                  apply:p=>{p.fireRate=Math.max(6,Math.floor(p.fireRate*0.85));}},
+  {r:false,icon:'🌃',name:'MAGNETIC FIELD', desc:'XP magnet +25%',                             apply:p=>{p.magnet*=1.25;}},
+  {r:false,icon:'🌟',name:'SHIELD MATRIX', desc:'Gain +25 shield on pickup',                   apply:p=>{p.maxShield+=25;p.shield+=25;}}, 
   {r:false,icon:'💎',name:'HEAVY ROUNDS',  desc:'Bullet damage +20%',                          apply:p=>{p.bulletDmg*=1.2;}},
   {r:false,icon:'⚡',name:'QUICKENING',    desc:'Fire rate -15%',                              apply:p=>{p.fireRate=Math.max(6,Math.floor(p.fireRate*0.85));}},
   {r:false,icon:'💨',name:'SPRINT JETS',   desc:'Move speed +18%',                             apply:p=>{p.speed*=1.18;}},
@@ -595,8 +587,8 @@ const UPGRADES=[
   {r:false,icon:'💣',name:'EXPANSION',     desc:'Bullet size +10% and damage +10%',            apply:p=>{p.bulletSize*=1.1;p.bulletDmg*=1.1;}},
   {r:false,icon:'🌀',name:'STORM CORE',    desc:'Chain Lightning cooldown -25%',               apply:p=>{p.chainMax=Math.max(160,Math.floor(p.chainMax*0.75));}},
   {r:false,icon:'🕹️',name:'FIELD TACTICS', desc:'XP magnet +30% and shield +10',               apply:p=>{p.magnet*=1.3;p.maxShield+=10;p.shield+=10;}},
-  {r:false,icon:'🌠',name:'COSMIC PULSE',  desc:'Gravity Well also slows time briefly',         apply:p=>{p.gravityBonus=true;}},
-  {r:false,icon:'🌈',name:'RADIANT BURST', desc:'Burst Cannon has extra projectiles',          apply:p=>{p.burstOverflow=true;}},
+  {r:false,icon:'🌠',name:'ENERGY PULSE',  desc:'Bullets deal +10% extra splash-like damage',   apply:p=>{p.bulletDmg*=1.1;}},
+  {r:false,icon:'🌈',name:'FIRESTORM',    desc:'Increase multi-shot potential by 1',          apply:p=>{p.multiShot=Math.min(5,p.multiShot+1);}}, 
   {r:true, icon:'🎯',name:'SEEKER ROUNDS', desc:'★ Bullets home toward nearest enemy',         apply:p=>{p.homing=true;}},
   {r:true, icon:'💀',name:"DEATH'S EDGE",  desc:'★ Below 35% HP: +80% bullet damage',          apply:p=>{p.lowHpBonus=true;}},
   {r:true, icon:'💥',name:'CHAIN DEATH',   desc:'★ Enemy death damages all nearby foes',       apply:p=>{p.aoeOnKill=true;}},
@@ -611,13 +603,13 @@ const UPGRADES=[
   {r:true, icon:'⚔️', name:'SHIELD BASH',  desc:'★ Taking damage fires a shockwave burst',     apply:p=>{p.shieldBash=true;}},
   {r:true, icon:'🔑',name:'CRIT MASTERY',  desc:'★ Crit chance +25%, crit multiplier ×3',      apply:p=>{p.critChance=Math.min(0.9,p.critChance+0.25);p.critMult=3;}},
   {r:true, icon:'👾',name:'SWARM DRONES',  desc:'★ Drones fire twice as often',                apply:p=>{p.decoyMax=Math.max(60,Math.floor(p.decoyMax*0.5));}},
-  {r:true, icon:'🌌',name:'GRAVITON CORE', desc:'★ Gravity Well cooldown -45%',               apply:p=>{p.gravityMax=Math.max(140,Math.floor(p.gravityMax*0.55));}},
-  {r:true, icon:'💥',name:'TEMPORAL CATASTROPHE', desc:'★ Burst Cannon cooldown -40%',             apply:p=>{p.burstMax=Math.max(120,Math.floor(p.burstMax*0.6));}},
+  {r:true, icon:'🌌',name:'PRISMATIC CORE', desc:'★ Bullet damage +20% and size +10%',          apply:p=>{p.bulletDmg*=1.2;p.bulletSize*=1.1;}},
+  {r:true, icon:'💥',name:'CHRONO BLAST', desc:'★ Fire rate improves by 20%',                 apply:p=>{p.fireRate=Math.max(5,Math.floor(p.fireRate*0.8));}},
   {r:true, icon:'🚀',name:'AERIAL ASSAULT', desc:'★ Multi-shot +1 and bullet damage +20%',     apply:p=>{p.multiShot=Math.min(5,p.multiShot+1);p.bulletDmg*=1.2;}},
   {r:true, icon:'🌐',name:'PRISMATIC SHOT', desc:'★ Bullets gain extra size and damage',       apply:p=>{p.bulletSize*=1.2;p.bulletDmg*=1.15;}},
   {r:true, icon:'🛡️',name:'SHIELD OVERFLOW', desc:'★ +80 shield and recharge',                 apply:p=>{p.maxShield+=80;p.shieldRecharge=true;p.shield=p.maxShield;}},
-  {r:true, icon:'🌀',name:'VORTEX FIELD', desc:'★ Gravity Well slows and pulls harder',       apply:p=>{p.gravityBonus=true;p.magnet*=1.3;}},
-  {r:true, icon:'💫',name:'PHASE TACTICS', desc:'★ Burst Cannon fires extra projectiles',      apply:p=>{p.burstOverflow=true;}},
+  {r:true, icon:'🌀',name:'SHOCKWAVE', desc:'★ Hits deal slightly more burst damage',      apply:p=>{p.bulletDmg*=1.12;}},
+  {r:true, icon:'💫',name:'HAIL FIRE', desc:'★ Primary fire gains +1 multi-shot',         apply:p=>{p.multiShot=Math.min(5,p.multiShot+1);}},
 ];
 function getChoices(){const common=UPGRADES.filter(u=>!u.r).sort(()=>Math.random()-0.5).slice(0,3);const rare=UPGRADES.filter(u=>u.r).sort(()=>Math.random()-0.5).slice(0,1);return [...common,...rare].sort(()=>Math.random()-0.5);}
 const ADMIN_ACTIONS=[
@@ -654,11 +646,12 @@ const game={
   bullets:new BM(),particles:new PS(),lightning:new Lightning(),bg:new BG(),
   pendingUpgrades:[],bossActive:false,bossRef:null,combo:0,comboTimer:0,
 
-  init(){
+  init(startSkills=[]){
     this.player=new Player();this.enemies=[];this.xpOrbs=[];
     this.score=0;this.kills=0;this.wave=1;this.waveTimer=0;this.spawnTimer=0;this.spawnRate=90;
     this.bullets=new BM();this.particles=new PS();this.lightning=new Lightning();
     this.pendingUpgrades=[];this.shakeMag=0;this.slowTime=0;this.bossActive=false;this.combo=0;this.comboTimer=0;
+    this.selectedSkills=startSkills;startSkills.forEach(s=>s.apply(this.player));
   },
   shake(m){this.shakeMag=Math.max(this.shakeMag,m);},
   addScore(s){const m=1+Math.floor(this.combo/5)*0.1;this.score+=Math.round(s*m);},
@@ -682,7 +675,7 @@ const game={
     const w=this.wave;let pool=['grunt'];
     if(w>=2)pool.push('speeder','swarm');
     if(w>=3)pool.push('shooter','bomber');
-    if(w>=4)pool.push('swarm','swarm','phantom','sniper');
+    if(w>=4)pool.push('swarm','swarm','phantom','sniper','charger');
     if(w>=5)pool.push('tank','splitter');
     if(w>=7)pool.push('elite');
     let type=pool[rndInt(0,pool.length-1)];
@@ -732,7 +725,7 @@ const game={
     document.getElementById('waveDisp').textContent='WAVE '+this.wave;
     document.getElementById('levelDisp').textContent='LVL '+p.level;
     document.getElementById('comboDisp').textContent=this.combo>=3?this.combo+'x COMBO':'';
-    this._ab('Q',p.novaCd,p.novaMax);this._ab('E',p.slowCd,p.slowMax);this._ab('R',p.chainCd,p.chainMax);this._ab('G',p.gravityCd,p.gravityMax);this._ab('T',p.burstCd,p.burstMax);
+    this._ab('Q',p.novaCd,p.novaMax);this._ab('E',p.slowCd,p.slowMax);this._ab('R',p.chainCd,p.chainMax);
     if(this.bossActive&&this.bossRef&&this.bossRef.alive)document.getElementById('bossFill').style.width=(this.bossRef.hp/this.bossRef.maxHp*100)+'%';
   },
   _ab(k,cd,mx){
@@ -816,8 +809,9 @@ const game={
   }
 };
 
-document.getElementById('startBtn').addEventListener('click',()=>{document.getElementById('startScreen').style.display='none';game.init();game.state='playing';});
-document.getElementById('restartBtn').addEventListener('click',()=>{document.getElementById('deathScreen').style.display='none';document.getElementById('bossBar').style.display='none';game.init();game.state='playing';});
+document.getElementById('startBtn').addEventListener('click',()=>{document.getElementById('startScreen').style.display='none';game.init([selectedStartSkill]);game.state='playing';});
+document.getElementById('restartBtn').addEventListener('click',()=>{document.getElementById('deathScreen').style.display='none';document.getElementById('bossBar').style.display='none';game.init(game.selectedSkills||[selectedStartSkill]);game.state='playing';});
+renderStartSkills();
 document.getElementById('admin-close').addEventListener('click',()=>{game.closeAdmin();});
 document.getElementById('admin-dup').addEventListener('click',()=>{game.applyAdmin({type:'repeat'});});
 
