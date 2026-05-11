@@ -8,9 +8,9 @@
   @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap');
   *{margin:0;padding:0;box-sizing:border-box;}
   :root{--c-bg:#050810;--c-player:#00f5ff;--c-enemy:#ff2d6b;--c-gold:#ffd700;--c-text:#c8d8ff;--c-accent:#7b2fff;}
-  body{background:var(--c-bg);display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;overflow:hidden;font-family:'Share Tech Mono',monospace;}
+  body{background:var(--c-bg);display:flex;align-items:center;justify-content:center;height:100vh;overflow:hidden;font-family:'Share Tech Mono',monospace;}
   #gameWrap{position:relative;width:800px;height:600px;}
-  canvas{display:block;width:100%;height:100%;border:1px solid #1a2550;box-shadow:0 0 60px rgba(0,245,255,0.08),0 0 120px rgba(123,47,255,0.05);}
+  canvas{display:block;border:1px solid #1a2550;box-shadow:0 0 60px rgba(0,245,255,0.08),0 0 120px rgba(123,47,255,0.05);}
   #ui{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;}
   #hud{position:absolute;top:12px;left:12px;right:12px;display:flex;align-items:flex-start;justify-content:space-between;}
   .stat-block{display:flex;flex-direction:column;gap:4px;}
@@ -67,38 +67,11 @@
   #bossFill{height:100%;background:linear-gradient(90deg,#ff0040,#ff2d6b);transition:width 0.1s;}
   #comboPop{position:absolute;top:45%;left:50%;transform:translate(-50%,-50%);pointer-events:none;font-family:'Orbitron',sans-serif;font-size:30px;font-weight:900;opacity:0;transition:opacity 0.2s;text-shadow:0 0 30px currentColor;}
   #waveAnn{position:absolute;top:38%;left:50%;transform:translateX(-50%);font-family:'Orbitron',sans-serif;font-size:16px;letter-spacing:8px;color:#7b2fff;opacity:0;transition:opacity 0.4s;text-shadow:0 0 20px rgba(123,47,255,0.8);white-space:nowrap;}
-  /* 모바일 컨트롤 */
-  #mobileControls{display:none;width:100%;height:140px;background:rgba(5,8,16,0.95);border-top:1px solid rgba(0,245,255,0.2);pointer-events:all;gap:12px;padding:12px;position:relative;}
-  .mobile-btn{border:2px solid rgba(0,245,255,0.3);background:rgba(5,8,20,0.8);color:var(--c-player);cursor:pointer;border-radius:4px;font-family:'Orbitron',sans-serif;font-size:11px;font-weight:bold;transition:all 0.1s;touch-action:none;user-select:none;padding:8px 4px;}
-  .mobile-btn:active{background:rgba(0,245,255,0.3);border-color:var(--c-player);box-shadow:0 0 20px rgba(0,245,255,0.4);}
-  #mobileDir{display:grid;grid-template-columns:1fr 1fr 1fr;grid-template-rows:1fr 1fr 1fr;gap:4px;width:100px;flex-shrink:0;}
-  #mobileUp{grid-column:2;grid-row:1;}
-  #mobileLeft{grid-column:1;grid-row:2;}
-  #mobileDown{grid-column:2;grid-row:3;}
-  #mobileRight{grid-column:3;grid-row:2;}
-  #mobileActions{display:flex;gap:8px;flex:1;}
-  #mobileDash{flex:0.7;}
-  #mobileQ,#mobileE,#mobileR{flex:1;}
-  /* 조이스틱 스타일 */
-  #mobileJoystick{position:relative;width:120px;height:120px;background:rgba(0,245,255,0.1);border:2px solid rgba(0,245,255,0.3);border-radius:50%;flex-shrink:0;touch-action:none;}
-  #joystickBg{width:100%;height:100%;border-radius:50%;background:radial-gradient(circle at center, rgba(0,245,255,0.05) 0%, rgba(0,245,255,0.02) 100%);position:relative;}
-  #joystickStick{position:absolute;width:40px;height:40px;background:radial-gradient(circle at center, rgba(0,245,255,0.8), rgba(0,245,255,0.4));border:1px solid rgba(0,245,255,0.6);border-radius:50%;top:50%;left:50%;transform:translate(-50%, -50%);box-shadow:0 0 15px rgba(0,245,255,0.5);transition:all 0.05s;pointer-events:none;}
-  /* 모바일 모드 레이아웃 */
-  body.mobile-mode{flex-direction:row;justify-content:flex-start;align-items:center;gap:0;}
-  body.mobile-mode #mobileControls{display:flex;flex-direction:row;justify-content:center;align-items:center;width:auto;height:100%;gap:8px;padding:8px;border-top:none;border-right:1px solid rgba(0,245,255,0.2);}
-  body.mobile-mode #mobileJoystick{width:100px;height:100px;flex-shrink:0;}
-  body.mobile-mode #mobileActions{display:flex;flex-direction:column;gap:4px;width:auto;flex-shrink:0;position:absolute;right:8px;top:50%;transform:translateY(-50%);touch-action:none;cursor:grab;}
-  body.mobile-mode #mobileActions.dragging{cursor:grabbing;}
-  body.mobile-mode #mobileDash{width:50px;height:50px;flex:none;}
-  body.mobile-mode #mobileQ,#mobileE,#mobileR{width:50px;height:50px;flex:none;font-size:10px;padding:6px 4px;}
-  body.mobile-mode #gameWrap{width:100vw;height:100vh;}
-  body.mobile-mode canvas{width:800px;height:600px;max-width:100%;max-height:100vh;object-fit:contain;}
-  body.mobile-mode #ui{width:100%;height:100%;position:absolute;top:0;left:0;}
 </style>
 </head>
 <body>
 <div id="gameWrap">
-  <canvas id="c"></canvas>
+  <canvas id="c" width="800" height="600"></canvas>
   <div id="ui">
     <div id="hud">
       <div class="stat-block">
@@ -154,33 +127,16 @@
     <div id="deathScreen">
       <div class="sub">HULL BREACH</div>
       <h1 class="title">DESTROYED</h1>
-      <div id="deathScore">0</div>ㄱ
+      <div id="deathScore">0</div>
       <div id="killCount">0 hostiles eliminated</div>
       <button class="btn" id="restartBtn">TRY AGAIN</button>
     </div>
   </div>
 </div>
-
-<!-- 모바일 컨트롤 -->
-<div id="mobileControls">
-  <div id="mobileJoystick">
-    <div id="joystickBg"></div>
-    <div id="joystickStick"></div>
-  </div>
-  <div id="mobileActions">
-    <button class="mobile-btn" id="mobileDash">DASH<br>SHIFT</button>
-    <button class="mobile-btn" id="mobileQ">NOVA<br>Q</button>
-    <button class="mobile-btn" id="mobileE">SLOW<br>E</button>
-    <button class="mobile-btn" id="mobileR">CHAIN<br>R</button>
-  </div>
-</div>
-
 <script>
 'use strict';
 const canvas=document.getElementById('c'),ctx=canvas.getContext('2d');
 const W=800,H=600;
-canvas.width = W;
-canvas.height = H;
 const rnd=(a,b)=>Math.random()*(b-a)+a;
 const rndInt=(a,b)=>Math.floor(rnd(a,b+1));
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -190,110 +146,15 @@ const norm=(v)=>{const m=Math.hypot(v.x,v.y)||1;return{x:v.x/m,y:v.y/m};};
 const easeOut=(t)=>1-Math.pow(1-t,3);
 const a2=(a,b)=>Math.atan2(b.y-a.y,b.x-a.x);
 
-// ── 모바일 가로 모드 고정 ──
-if(window.innerHeight<window.innerWidth){
-  try{if(screen.orientation&&screen.orientation.lock){screen.orientation.lock('landscape').catch(e=>{});}}catch(e){}
-}
-window.addEventListener('orientationchange',()=>{
-  if(window.innerHeight>window.innerWidth){
-    try{if(screen.orientation&&screen.orientation.lock){screen.orientation.lock('landscape').catch(e=>{});}}catch(e){}
-  }
-});
-
-// ── 모바일 모드 토글 ──
-let mobileMode = false;
-function toggleMobileMode() {
-  mobileMode = !mobileMode;
-  const body = document.body;
-  const mobileControls = document.getElementById('mobileCControls');
-  if (mobileMode) {
-    body.classList.add('mobile-mode');
-    mobileControls.style.display = 'flex';
-  } else {
-    body.classList.remove('mobile-mode');
-    mobileControls.style.display = 'none';
-  }
-  // 저장
-  localStorage.setItem('mobileMode', mobileMode);
-}
-// 로드 시 복원
-window.addEventListener('load', () => {
-  const saved = localStorage.getItem('mobileMode');
-  if (saved === 'true') {
-    mobileMode = true;
-    toggleMobileMode();
-  }
-});
-
+const keys={},just={};
 document.addEventListener('keydown',e=>{if(!keys[e.code])just[e.code]=true;keys[e.key]=true;keys[e.code]=true;['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key)&&e.preventDefault();
   if((e.code==='KeyL'||e.code==='KeyM')&&keys['KeyL']&&keys['KeyM']&&game.state!=='admin'){game.openAdmin();}
-  if(e.code==='KeyM' && !keys['KeyL']){toggleMobileMode();} // M 키로 모바일 모드 토글
   if(e.code==='Escape'&&game.state==='admin'){game.closeAdmin();}
 });
 document.addEventListener('keyup',e=>{keys[e.key]=false;keys[e.code]=false;});
 
-// ── 모바일 터치 컨트롤 ──
-const touchKeys={};
-const mobileButtons=[
-  {id:'mobileDash',keyCode:'ShiftLeft',key:'Shift'},
-  {id:'mobileQ',keyCode:'KeyQ',key:'q'},
-  {id:'mobileE',keyCode:'KeyE',key:'e'},
-  {id:'mobileR',keyCode:'KeyR',key:'r'},
-];
-mobileButtons.forEach(btn=>{
-  const el=document.getElementById(btn.id);
-  el.addEventListener('touchstart',e=>{e.preventDefault();keys[btn.keyCode]=true;keys[btn.key]=true;just[btn.keyCode]=true;touchKeys[btn.id]=true;});
-  el.addEventListener('touchend',e=>{e.preventDefault();keys[btn.keyCode]=false;keys[btn.key]=false;delete touchKeys[btn.id];});
-  el.addEventListener('touchcancel',e=>{e.preventDefault();keys[btn.keyCode]=false;keys[btn.key]=false;delete touchKeys[btn.id];});
-  el.addEventListener('mousedown',e=>{e.preventDefault();keys[btn.keyCode]=true;keys[btn.key]=true;just[btn.keyCode]=true;touchKeys[btn.id]=true;});
-  el.addEventListener('mouseup',e=>{e.preventDefault();keys[btn.keyCode]=false;keys[btn.key]=false;delete touchKeys[btn.id];});
-  el.addEventListener('mouseleave',e=>{keys[btn.keyCode]=false;keys[btn.key]=false;delete touchKeys[btn.id];});
-});
-
-// ── 조이스틱 컨트롤 ──
-const joystick={x:0,y:0,active:false};
-const joystickEl=document.getElementById('mobileJoystick');
-const joystickStick=document.getElementById('joystickStick');
-const deadzone=15;const maxRadius=40;
-function updateJoystick(clientX,clientY){
-  const rect=joystickEl.getBoundingClientRect();
-  const centerX=rect.left+rect.width/2;
-  const centerY=rect.top+rect.height/2;
-  let dx=clientX-centerX;let dy=clientY-centerY;
-  const distance=Math.hypot(dx,dy);
-  if(distance<deadzone){dx=0;dy=0;}else{
-    const scale=Math.min(maxRadius,distance)/distance;
-    dx*=scale;dy*=scale;
-  }
-  joystick.x=dx;joystick.y=dy;
-  joystickStick.style.transform=`translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
-  // 방향키 업데이트
-  keys['ArrowUp']=dy<-deadzone;keys['ArrowDown']=dy>deadzone;keys['ArrowLeft']=dx<-deadzone;keys['ArrowRight']=dx>deadzone;
-  keys['w']=dy<-deadzone;keys['s']=dy>deadzone;keys['a']=dx<-deadzone;keys['d']=dx>deadzone;
-}
-joystickEl.addEventListener('touchstart',e=>{e.preventDefault();joystick.active=true;const t=e.touches[0];updateJoystick(t.clientX,t.clientY);});
-joystickEl.addEventListener('touchmove',e=>{e.preventDefault();if(!joystick.active)return;const t=e.touches[0];updateJoystick(t.clientX,t.clientY);});
-joystickEl.addEventListener('touchend',e=>{e.preventDefault();joystick.active=false;joystick.x=0;joystick.y=0;joystickStick.style.transform='translate(-50%, -50%)';keys['ArrowUp']=false;keys['ArrowDown']=false;keys['ArrowLeft']=false;keys['ArrowRight']=false;keys['w']=false;keys['s']=false;keys['a']=false;keys['d']=false;});
-joystickEl.addEventListener('touchcancel',e=>{e.preventDefault();joystick.active=false;joystick.x=0;joystick.y=0;joystickStick.style.transform='translate(-50%, -50%)';keys['ArrowUp']=false;keys['ArrowDown']=false;keys['ArrowLeft']=false;keys['ArrowRight']=false;keys['w']=false;keys['s']=false;keys['a']=false;keys['d']=false;});
-joystickEl.addEventListener('mousedown',e=>{e.preventDefault();joystick.active=true;updateJoystick(e.clientX,e.clientY);});
-joystickEl.addEventListener('mousemove',e=>{if(!joystick.active)return;updateJoystick(e.clientX,e.clientY);});
-joystickEl.addEventListener('mouseup',e=>{e.preventDefault();joystick.active=false;joystick.x=0;joystick.y=0;joystickStick.style.transform='translate(-50%, -50%)';keys['ArrowUp']=false;keys['ArrowDown']=false;keys['ArrowLeft']=false;keys['ArrowRight']=false;keys['w']=false;keys['s']=false;keys['a']=false;keys['d']=false;});
-joystickEl.addEventListener('mouseleave',e=>{if(!joystick.active)return;joystick.active=false;joystick.x=0;joystick.y=0;joystickStick.style.transform='translate(-50%, -50%)';keys['ArrowUp']=false;keys['ArrowDown']=false;keys['ArrowLeft']=false;keys['ArrowRight']=false;keys['w']=false;keys['s']=false;keys['a']=false;keys['d']=false;});
-document.addEventListener('mouseup',e=>{joystick.active=false;joystick.x=0;joystick.y=0;joystickStick.style.transform='translate(-50%, -50%)';keys['ArrowUp']=false;keys['ArrowDown']=false;keys['ArrowLeft']=false;keys['ArrowRight']=false;keys['w']=false;keys['s']=false;keys['a']=false;keys['d']=false;});
-
-// ── 버튼 드래그 이동 ──
-const mobileActionsEl=document.getElementById('mobileActions');
-let dragState={isDragging:false,offsetX:0,offsetY:0};
-mobileActionsEl.addEventListener('touchstart',e=>{dragState.isDragging=true;dragState.offsetX=e.touches[0].clientX-mobileActionsEl.getBoundingClientRect().left;dragState.offsetY=e.touches[0].clientY-mobileActionsEl.getBoundingClientRect().top;mobileActionsEl.classList.add('dragging');});
-mobileActionsEl.addEventListener('touchmove',e=>{if(!dragState.isDragging)return;const x=e.touches[0].clientX-dragState.offsetX;const y=e.touches[0].clientY-dragState.offsetY;mobileActionsEl.style.left=x+'px';mobileActionsEl.style.top=y+'px';mobileActionsEl.style.right='auto';mobileActionsEl.style.transform='none';});
-mobileActionsEl.addEventListener('touchend',e=>{dragState.isDragging=false;mobileActionsEl.classList.remove('dragging');localStorage.setItem('buttonX',mobileActionsEl.style.left);localStorage.setItem('buttonY',mobileActionsEl.style.top);});
-mobileActionsEl.addEventListener('touchcancel',e=>{dragState.isDragging=false;mobileActionsEl.classList.remove('dragging');});
-mobileActionsEl.addEventListener('mousedown',e=>{dragState.isDragging=true;dragState.offsetX=e.clientX-mobileActionsEl.getBoundingClientRect().left;dragState.offsetY=e.clientY-mobileActionsEl.getBoundingClientRect().top;mobileActionsEl.classList.add('dragging');});
-document.addEventListener('mousemove',e=>{if(!dragState.isDragging)return;const x=e.clientX-dragState.offsetX;const y=e.clientY-dragState.offsetY;mobileActionsEl.style.left=x+'px';mobileActionsEl.style.top=y+'px';mobileActionsEl.style.right='auto';mobileActionsEl.style.transform='none';});
-document.addEventListener('mouseup',e=>{if(!dragState.isDragging)return;dragState.isDragging=false;mobileActionsEl.classList.remove('dragging');localStorage.setItem('buttonX',mobileActionsEl.style.left);localStorage.setItem('buttonY',mobileActionsEl.style.top);});
-// 저장된 위치 복원
-window.addEventListener('load',()=>{const x=localStorage.getItem('buttonX');const y=localStorage.getItem('buttonY');if(x)mobileActionsEl.style.left=x;if(y)mobileActionsEl.style.top=y;if(x||y){mobileActionsEl.style.right='auto';mobileActionsEl.style.transform='none';}});
-
+// ── PARTICLES ──
+class PS{
   constructor(){this.pool=[];this.active=[];}
   spawn(x,y,o={}){
     let p=this.pool.pop()||{};
@@ -427,7 +288,7 @@ class Player{
     if(this.decoyCd>0)this.decoyCd--;
     // decoy auto-fire at enemies
     if(this.decoyCount>0&&this.decoyCd===0){
-      this.decoyCd=this.decoyMax;ㄱ
+      this.decoyCd=this.decoyMax;
       for(let i=0;i<this.decoyCount;i++){
         const da=this.orbAngle+i*(Math.PI*2/this.decoyCount);
         const dx2=this.x+Math.cos(da)*50,dy2=this.y+Math.sin(da)*50;
@@ -904,16 +765,14 @@ const game={
   }
 };
 
-window.addEventListener('load', () => {
-  document.getElementById('startBtn').addEventListener('click',()=>{document.getElementById('startScreen').style.display='none';game.init();game.state='playing';});
-  document.getElementById('restartBtn').addEventListener('click',()=>{document.getElementById('deathScreen').style.display='none';document.getElementById('bossBar').style.display='none';game.init();game.state='playing';});
-  document.getElementById('admin-close').addEventListener('click',()=>{game.closeAdmin();});
-  document.getElementById('admin-dup').addEventListener('click',()=>{game.applyAdmin({type:'repeat'});});
-  requestAnimationFrame(loop);
-});
+document.getElementById('startBtn').addEventListener('click',()=>{document.getElementById('startScreen').style.display='none';game.init();game.state='playing';});
+document.getElementById('restartBtn').addEventListener('click',()=>{document.getElementById('deathScreen').style.display='none';document.getElementById('bossBar').style.display='none';game.init();game.state='playing';});
+document.getElementById('admin-close').addEventListener('click',()=>{game.closeAdmin();});
+document.getElementById('admin-dup').addEventListener('click',()=>{game.applyAdmin({type:'repeat'});});
 
 let last=0;
 function loop(ts){requestAnimationFrame(loop);last=ts;game.update();game.draw();}
+requestAnimationFrame(loop);
 </script>
 </body>
 </html>
